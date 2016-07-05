@@ -95,6 +95,7 @@ function getToken (options, cb) {
   var handler = options.lambdaContext ? getLambdaMetadata : getEc2Metadata
   handler(options, function (err, metadata) {
     if (err) return cb(err)
+    options.log('handler metadata', metadata)
     authenticate(options, metadata.accountId, metadata.roleName, metadata.region, cb)
   })
 }
@@ -106,9 +107,10 @@ function authenticate (options, accountId, roleName, region, cb) {
     json: true
   }, function (err, res, authResult) {
     if (err) return cb(err)
-    decryptAuthResult(options, authResult, function (err, token) {
+    options.log('auth result', authResult)
+    decryptAuthResult(options, region, authResult, function (err, token) {
       if (err) return cb(err)
-      options.log('auth result', token)
+      options.log('decrypt result', token)
       // Expire 10 seconds before lease is up, to account for latency
       options.tokenExpiresAt = Date.now + token['lease_duration'] - 600
       options.token = token['client_token']
@@ -117,15 +119,15 @@ function authenticate (options, accountId, roleName, region, cb) {
   })
 }
 
-function decryptAuthResult (options, authResult, cb) {
+function decryptAuthResult (options, region, authResult, cb) {
   options.log('decrypting', authResult)
   if (!authResult['auth_data']) {
     return cb(new Error('cannot decrypt token, auth_data is missing'))
   }
   var text = new Buffer(authResult['auth_data'], 'base64')
-  options.log('config', options.aws.config)
+  // options.log('config', options.aws.config)
   // options.log('aws', options.aws)
-  var kms = new options.aws.KMS({ apiVersion: '2014-11-01' })
+  var kms = new options.aws.KMS({ apiVersion: '2014-11-01', region: options.aws.config.region || region })
 
   kms.decrypt({ CiphertextBlob: text }, function (err, kmsResult) {
     options.log('kms result', kmsResult)
