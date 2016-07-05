@@ -1,0 +1,24 @@
+{
+  "name": "cerberus-node",
+  "version": "0.1.0",
+  "description": "Node client for Cerberus Key Mgmt",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://TKye@bitbucket.nike.com/scm/cer/cerberus-node-client.git"
+  },
+  "keywords": [
+    "nike",
+    "cerberus",
+    "vault"
+  ],
+  "author": "Timothy Kye",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "request-micro": "^1.1.0",
+    "url-join": "^1.1.0"
+  }
+}
