@@ -19,6 +19,7 @@ function shallowCopy (target, source) {
   return target
 }
 
+// Client Constructor
 function cerberus (options) {
   options = shallowCopy({}, options)
   // Override options with env variables
@@ -42,22 +43,39 @@ function cerberus (options) {
   options.log = options.debug ? log : noop
 
   return {
-    get: callCerberus.bind(null, 'GET', options),
-    set: callCerberus.bind(null, 'POST', options),
-    list: callCerberus.bind(null, 'LIST', options),
-    delete: callCerberus.bind(null, 'DELETE', options)
+    get: function (keyPath, cb) { return callCerberus('GET', options, keyPath, undefined, cb) },
+    set: function (keyPath, data, cb) { return callCerberus('POST', options, keyPath, data, cb) },
+    list: function (keyPath, cb) { return callCerberus('LIST', options, keyPath, undefined, cb) },
+    delete: function (keyPath, cb) { return callCerberus('DELETE', options, keyPath, undefined, cb) }
   }
 }
 
-function callCerberus (type, options, keyPath, cb) {
+function callCerberus (type, options, keyPath, data, cb) {
+  if (cb === undefined) {
+    if (typeof global.Promise === 'function') {
+      options.log('promise path')
+      return new Promise(function (resolve, reject) {
+        callCerberus(type, options, keyPath, data, function (err, result) {
+          if (err) reject(err)
+          else resolve(result)
+        })
+      })
+    }
+    // Otherwise
+    throw new Error('No callback was supplied, and global.Promise is not a function. You must provide an async interface')
+  }
   getToken(options, function (err, authToken) {
+    var url = urlJoin(options.hostUrl, cerberusVersion, 'secret', keyPath)
+    options.log('token retrieved', authToken, keyPath, url)
     if (err) return cb(err)
     request({
       method: type === 'LIST' ? 'GET' : type,
-      url: urlJoin(options.hostUrl, cerberusVersion, 'secret', keyPath) + (type === 'LIST' ? '?list=true' : ''),
+      url: url + (type === 'LIST' ? '?list=true' : ''),
       headers: { 'X-Vault-Token': authToken },
+      body: data,
       json: true
     }, function (err, res, data) {
+      options.log('key retrieved', data)
       if (err) return cb(err)
       else return cb(null, data.data)
     })
@@ -73,36 +91,24 @@ function getToken (options, cb) {
   // Already has token
   if (options.token) return cb(null, options.token)
 
-  // Use Lambda
-  if (options.lambdaContext) {
-    return getLambdaMetadata(options, makeMetadataResponseHandler(options, cb))
-  }
-
-  // Default to EC2
-  return getEc2Metadata(options, makeMetadataResponseHandler(options, cb))
-}
-
-function makeMetadataResponseHandler (options, cb) {
-  return function (err, metadata) {
+  // Default to Ec2 if lambdaContext is missing
+  var handler = options.lambdaContext ? getLambdaMetadata : getEc2Metadata
+  handler(options, function (err, metadata) {
     if (err) return cb(err)
-    if (options.aws.config.region === undefined) {
-      options.aws.config.region = metadata.region
-    }
-    return auth(options, metadata.accountId, metadata.roleName, metadata.region, cb)
-  }
+    authenticate(options, metadata.accountId, metadata.roleName, metadata.region, cb)
+  })
 }
 
-function auth (options, accountId, roleName, region, cb) {
-  var authOptions = {
+function authenticate (options, accountId, roleName, region, cb) {
+  request.post({
     url: urlJoin(options.hostUrl, cerberusVersion, '/auth/iam-role'),
     body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
     json: true
-  }
-  request.post(authOptions, function (err, res, authResult) {
+  }, function (err, res, authResult) {
     if (err) return cb(err)
     decryptAuthResult(options, authResult, function (err, token) {
       if (err) return cb(err)
-      console.log('auth result', token)
+      options.log('auth result', token)
       // Expire 10 seconds before lease is up, to account for latency
       options.tokenExpiresAt = Date.now + token['lease_duration'] - 600
       options.token = token['client_token']
@@ -112,17 +118,17 @@ function auth (options, accountId, roleName, region, cb) {
 }
 
 function decryptAuthResult (options, authResult, cb) {
-  console.log('decrypting', authResult)
+  options.log('decrypting', authResult)
   if (!authResult['auth_data']) {
     return cb(new Error('cannot decrypt token, auth_data is missing'))
   }
   var text = new Buffer(authResult['auth_data'], 'base64')
-  console.log('config', options.aws.config)
-  // console.log('aws', options.aws)
+  options.log('config', options.aws.config)
+  // options.log('aws', options.aws)
   var kms = new options.aws.KMS({ apiVersion: '2014-11-01' })
 
   kms.decrypt({ CiphertextBlob: text }, function (err, kmsResult) {
-    console.log('kms result', kmsResult)
+    options.log('kms result', kmsResult)
     if (err) {
       return cb(!isKmsAccessError(err)
         ? err
@@ -182,15 +188,12 @@ function getLambdaMetadata (options, cb) {
 
   lambda.getFunctionConfiguration(params, function (err, data) {
     if (err) {
-      console.log('error getting metadata', err, err.stack)
-      cb(err)
-      return
+      options.log('error getting metadata', err, err.stack)
+      return cb(err)
     }
 
     metadata.roleName = data.Role.split('/')[1]
-
-    console.log('retrieved metadata values', metadata)
-
+    options.log('retrieved metadata values', metadata)
     cb(null, metadata)
   })
 }
