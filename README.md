@@ -7,7 +7,7 @@ This is a client for interacting with a [Cerberus backend](http://bitbucket.nike
 install with npm
 
 ```
-npm install --save http://bitbucket.nike.com/scm/cer/cerberus-node-client.git
+npm install --save git+http://bitbucket.nike.com/scm/cer/cerberus-node-client.git
 ```
 
 ## Usage with the AWS SDK
