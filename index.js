@@ -21,7 +21,12 @@ function shallowCopy (target, source) {
 
 // Client Constructor
 function cerberus (options) {
+  if (!options || typeof options !== 'object') {
+    throw new Error('options parameter is required')
+  }
+  // Copy so we can safely mutate
   options = shallowCopy({}, options)
+
   // Override options with env variables
   if (process.env.CERBERUS_TOKEN) {
     options.token = process.env.CERBERUS_TOKEN
@@ -30,9 +35,6 @@ function cerberus (options) {
     options.hostUrl = process.env.CERBERUS_ADDR
   }
   // Validate options
-  if (!options || typeof options !== 'object') {
-    throw new Error('options paramater is required')
-  }
   if (!options.aws || typeof options.aws !== 'object') {
     throw new Error('options.aws parameter is required')
   }
