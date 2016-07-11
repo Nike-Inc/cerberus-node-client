@@ -1,0 +1,17 @@
+application:
+  # The project key portion of your repository's Bitbucket URL.
+  # For example, 'KEYSTONE' in http://bitbucket.nike.com/projects/KEYSTONE/repos/node-pipeline/browse
+  stashProjectKey: CER
+  # The repository key portion of your repository's Bitbucket URL.
+  # For example, 'node-pipeline' in http://bitbucket.nike.com/projects/KEYSTONE/repos/node-pipeline/browse
+  stashRepositoryKey: cerberus-node-client
+pipeline:
+  name: node-pipeline
+  jenkins:
+    url: https://cpe.tools.nikecloud.com
+  profiles:
+    - artifactory
+  parameters:
+    # disabled by default - set to 'true' to enable slack notifications. Additional value-added options are available,
+    #  see the documentation for details.
+    slackNotificationsEnabled: false
