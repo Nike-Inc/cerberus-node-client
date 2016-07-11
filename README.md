@@ -4,7 +4,25 @@ This is a client for interacting with a [Cerberus backend](http://bitbucket.nike
 
 # Installation
 
-install with npm
+You have two installation options. The private Nike npm registry, or directly from bitbucket as a git package.
+
+## Private npm
+
+Using the private npm repo for Nike has the advantage of the cerberus client's dependency entry looking like a normal dependency, as well as a simplified installation command. Two use the private repo, you need an `.npmrc` file with the this contents
+
+```
+registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike
+```
+
+The `.npmrc` file can either be **project-level**, meaning it is in the root of your project, alongside the `package.json` file, or it can be in your user directory `~/.npmrc`. The per-project file simplifies your build process, since the build machine doesn't need any additional configuration, but it must be mode `600` (`chmod 600 .npmrc`) and it must be duplicated in every project you want to use it in. The user directory file means your build machine needs the same `.npmrc` file.
+
+It's up to you which one to use, both work.
+
+## Install as git package
+
+Installing with a git package has the advantage of not required **any** additional configuration on your machine or the build machine, but it requires that you have read access to the repository and produces a dependency entry in `package.json` that includes the entire url. If you don't have read permission on this repository, this method won't work for you.
+
+To install, just run the following command
 
 ```
 npm install --save git+http://bitbucket.nike.com/scm/cer/cerberus-node-client.git
