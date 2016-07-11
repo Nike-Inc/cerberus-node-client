@@ -1,6 +1,6 @@
 {
   "name": "cerberus-node-client",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "http://TKye@bitbucket.nike.com/scm/cer/cerberus-node-client.git"
+    "url": "http://bitbucket.nike.com/scm/cer/cerberus-node-client.git"
   },
   "keywords": [
     "nike",
