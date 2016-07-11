@@ -16,7 +16,12 @@ registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike
 
 The `.npmrc` file can either be **project-level**, meaning it is in the root of your project, alongside the `package.json` file, or it can be in your user directory `~/.npmrc`. The per-project file simplifies your build process, since the build machine doesn't need any additional configuration, but it must be mode `600` (`chmod 600 .npmrc`) and it must be duplicated in every project you want to use it in. The user directory file means your build machine needs the same `.npmrc` file.
 
-It's up to you which one to use, both work.
+It's up to you which one to use, both work. Once that is done, install from npm as normal.
+
+```
+npm install --save cerberus-node-client
+```
+
 
 ## Install as git package
 
