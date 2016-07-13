@@ -4,7 +4,7 @@ application:
   stashProjectKey: CER
   # The repository key portion of your repository's Bitbucket URL.
   # For example, 'node-pipeline' in http://bitbucket.nike.com/projects/KEYSTONE/repos/node-pipeline/browse
-  stashRepositoryKey: cerberus-node-client
+  stashRepositoryKey: node-lib-cerberus-client
 pipeline:
   name: node-pipeline
   jenkins:
