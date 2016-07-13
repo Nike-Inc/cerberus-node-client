@@ -76,10 +76,10 @@ function callCerberus (type, options, keyPath, data, cb) {
       headers: { 'X-Vault-Token': authToken },
       body: data,
       json: true
-    }, function (err, res, data) {
-      options.log('key retrieved', data)
+    }, function (err, res, result) {
+      options.log('key retrieved', result)
       if (err) return cb(err)
-      else return cb(null, data.data)
+      else return cb(null, result && result.data)
     })
   })
 }
