@@ -4,11 +4,11 @@ This is a client for interacting with a [Cerberus backend](http://bitbucket.nike
 
 # Installation
 
-You have two installation options. The private Nike npm registry, or directly from bitbucket as a git package. If you are using any other private nike packages (mockswell, scottie) that are **not** installed with the `@nike` scope, you cannot use the private npm method (it will break everything).
+You have two installation options. The private Nike npm registry, or directly from bitbucket as a git package.
 
 ## Private npm
 
-If you want to install with npm you will need to configure npm to use the private Nike npm registry. To do this, create a file called `.npmrc` with the following contents
+If you want to install with npm you will need to configure npm to use the private Nike npm registry with the `@nike` npm scope. To do this, create a file called `.npmrc` with the following contents
 
 ```
 @nike:registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike/
