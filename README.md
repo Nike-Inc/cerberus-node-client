@@ -113,5 +113,7 @@ To use the promise API omit the callback parameter (always the last one), and en
 
 * `get(keyPath [, callback])` - Read the contents of the **keyPath**. Returns an object
 * `set(keyPath, data [, callback])` - Set the contents of the **keyPath**. Returns `data`
+* `put` - alias for `set`
 * `list(keypath [, callback])` - List the paths available at the **keyPath**. Returns an array
 * `delete(keyPath [, callback])` - Delete the contents of the **keyPath**. Returns an object
+*  `remove` - alias for `delete`

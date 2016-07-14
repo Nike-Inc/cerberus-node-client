@@ -44,11 +44,18 @@ function cerberus (options) {
 
   options.log = options.debug ? log : noop
 
+  var get = function (keyPath, cb) { return callCerberus('GET', options, keyPath, undefined, cb) }
+  var set = function (keyPath, data, cb) { return callCerberus('POST', options, keyPath, data, cb) }
+  var remove = function (keyPath, cb) { return callCerberus('DELETE', options, keyPath, undefined, cb) }
+  var list = function (keyPath, cb) { return callCerberus('LIST', options, keyPath, undefined, cb) }
+
   return {
-    get: function (keyPath, cb) { return callCerberus('GET', options, keyPath, undefined, cb) },
-    set: function (keyPath, data, cb) { return callCerberus('POST', options, keyPath, data, cb) },
-    list: function (keyPath, cb) { return callCerberus('LIST', options, keyPath, undefined, cb) },
-    delete: function (keyPath, cb) { return callCerberus('DELETE', options, keyPath, undefined, cb) }
+    get: get,
+    set: set,
+    put: set,
+    list: list,
+    delete: remove,
+    remove: remove
   }
 }
 
