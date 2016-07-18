@@ -8,10 +8,10 @@ You have two installation options. The private Nike npm registry, or directly fr
 
 ## Private npm
 
-Using the private npm repo for Nike has the advantage of the cerberus client's dependency entry looking like a normal dependency, as well as a simplified installation command. Two use the private repo, you need an `.npmrc` file with the this contents
+If you want to install with npm you will need to configure npm to use the private Nike npm registry with the `@nike` npm scope. To do this, create a file called `.npmrc` with the following contents
 
 ```
-registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike
+@nike:registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike/
 ```
 
 The `.npmrc` file can either be **project-level**, meaning it is in the root of your project, alongside the `package.json` file, or it can be in your user directory `~/.npmrc`. The per-project file simplifies your build process, since the build machine doesn't need any additional configuration, but it must be mode `600` (`chmod 600 .npmrc`) and it must be duplicated in every project you want to use it in. The user directory file means your build machine needs the same `.npmrc` file.
@@ -19,9 +19,18 @@ The `.npmrc` file can either be **project-level**, meaning it is in the root of 
 It's up to you which one to use, both work. Once that is done, install from npm as normal.
 
 ```
-npm install --save cerberus-node-client
+npm install --save @nike/cerberus-node-client
 ```
 
+Then, require the package with `var cerberus = require('@nike/cerberus-node-client')`
+
+If you are also using nike packages that are unscoped (that don't use the `@nike` prefix), you will need to include the unscoped registry in your `.npmrc`
+
+```
+registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike
+```
+
+These are not mutually exclusive, but some problems have occured in the past with both entries. In general, when using Nike npm packages you should prefer to install with the `@nike` scope (most Nike packages are published there). If you run into an issues, please file an bug or let someone know in the `#js-cd` channel on Nike Digital's Slack.
 
 ## Install as git package
 
@@ -30,7 +39,7 @@ Installing with a git package has the advantage of not required **any** addition
 To install, just run the following command
 
 ```
-npm install --save git+http://bitbucket.nike.com/scm/cer/cerberus-node-client.git
+npm install --save git+http://bitbucket.nike.com/scm/cer/node-lib-cerberus-client.git
 ```
 
 ## Usage with the AWS SDK
