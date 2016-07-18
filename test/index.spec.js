@@ -55,6 +55,7 @@ test('uses environment variable for hostUrl when present', t => {
 test('get calls request', t => {
   var client = cerberus({ hostUrl: 'test', aws: {}, token: '1' })
   mock = (options, cb) => {
+    t.ok(true)
     t.end()
   }
   client.get('test')
