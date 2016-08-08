@@ -162,7 +162,6 @@ function isKmsAccessError (error) {
 }
 
 function getEc2Metadata (options, cb) {
-  var iam = new options.aws.IAM({apiVersion: '2010-05-08'})
   var metadata = { }
 
   request({ url: ec2MetadataUrl, json: true }, function (err, result, data) {
@@ -170,22 +169,14 @@ function getEc2Metadata (options, cb) {
     if (data.Code !== 'Success') return cb(data)
 
     var arn = data.InstanceProfileArn.split(':')
-    var instanceProfileName = arn[5].substring(arn[5].indexOf('/') + 1)
+    metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
     metadata.accountId = arn[4]
 
-    iam.getInstanceProfile({ InstanceProfileName: instanceProfileName }, function (err, data) {
+    request({ url: ec2InstanceDataUrl, json: true }, function (err, result, data) {
       if (err) return cb(err)
-      var roles = data.InstanceProfile.Roles
-      if (!roles.length) return cb(new Error('No roles returned for instance profile ' + instanceProfileName))
-
-      metadata.roleName = roles[0].RoleName
-
-      request({ url: ec2InstanceDataUrl, json: true }, function (err, result, data) {
-        if (err) return cb(err)
-        metadata.region = data.region
-        options.log('metadata', metadata)
-        cb(null, metadata)
-      })
+      metadata.region = data.region
+      options.log('metadata', metadata)
+      cb(null, metadata)
     })
   })
 }
