@@ -117,3 +117,37 @@ To use the promise API omit the callback parameter (always the last one), and en
 * `list(keypath [, callback])` - List the paths available at the **keyPath**. Returns an array
 * `delete(keyPath [, callback])` - Delete the contents of the **keyPath**. Returns an object
 *  `remove` - alias for `delete`
+* `setLambdaContext(context` - Set the `lambdaContext` after construction. See *Providing the client to your app* for details
+
+
+  # Providing the client to your app
+
+  Using Cerberus in your app will be easier if you create a wrapper module that handles construction and exports the constructed client. A standard wrappper would look like this
+
+  ```javascript
+  var AWS = require('aws-sdk')
+  var cerberus = require('@nike/cerberus-node-client')
+  var config = require('./config') // you will need to provide this
+  var urlJoin = require('url-join')
+
+  var client = cerberus({ aws: AWS, hostUrl: config.cerberus.host })
+  // Simplify keyPath creation
+  client.makePath = urlJoin.bind(urlJoin, config.cerberus.name)
+
+  module.exports = client
+  ```
+
+  If you are using a Lambda, the `lambdaContext` cannot be set at startup, it can only be set from inside the lambda `handler`. Luckily, you can set the context on an already constructed client.
+
+  ```javascript
+  var cerberus = require('./util/cerberus') // or wherever you put your wrapper
+
+  exports.handler = handler
+
+  function handler (event, context, callback) {
+    context.callbackWaitsForEmptyEventLoop = false
+    cerberus.setLambdaContext(context)
+  }
+  ```
+
+  As long as the rest of your app `require`s your wrapper module, the context will be set and everyone should work.
