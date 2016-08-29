@@ -1,6 +1,6 @@
 {
   "name": "@nike/cerberus-node-client",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
