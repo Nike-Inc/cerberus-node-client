@@ -118,6 +118,7 @@ function authenticate (options, accountId, roleName, region, cb) {
     json: true
   }, function (err, res, authResult) {
     if (err) return cb(err)
+    if (!authResult) return cb(new Error('cerberus returned empty authentication result'))
     options.log('auth result', authResult)
     decryptAuthResult(options, region, authResult, function (err, token) {
       if (err) return cb(err)
