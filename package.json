@@ -26,7 +26,7 @@
     "parser": "babel-eslint"
   },
   "dependencies": {
-    "request-micro": "^1.1.1",
+    "request-micro": "^1.2.1",
     "url-join": "^1.1.0"
   },
   "devDependencies": {
