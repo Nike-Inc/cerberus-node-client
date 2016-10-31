@@ -1,0 +1,44 @@
+{
+  "name": "cerberus-node-client",
+  "version": "0.1.9",
+  "description": "Node client for Cerberus Key Mgmt",
+  "main": "index.js",
+  "scripts": {
+    "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
+    "test:unit": "blue-tape test/**/**.js | ./node_modules/.bin/tap-spec",
+    "test:coverage": "covert -c -q test/*.js",
+    "test": "npm run style && npm run test:unit && npm run test:coverage",
+    "test:watch": "watchy -w . -i '/\\.|/node_modules|\\.json$'  -- ./node_modules/.bin/blue-tape  test/**/**.js | node_modules/.bin/tap-spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nike-Inc/cerberus-node-client.git"
+  },
+  "keywords": [
+    "nike",
+    "cerberus",
+    "vault"
+  ],
+  "files": [
+    "index.js"
+  ],
+  "author": "Timothy Kye",
+  "license": "Apache-2.0",
+  "standard": {
+    "parser": "babel-eslint"
+  },
+  "dependencies": {
+    "request-micro": "^1.2.1",
+    "url-join": "^1.1.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^6.1.0",
+    "blue-tape": "^0.2.0",
+    "covert": "^1.1.0",
+    "proxyquire": "^1.7.10",
+    "snazzy": "^4.0.0",
+    "standard": "^7.1.2",
+    "tap-spec": "^4.1.1",
+    "watchy": "^0.6.6"
+  }
+}
