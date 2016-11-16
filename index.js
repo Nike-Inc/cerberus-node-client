@@ -1,5 +1,6 @@
 var request = require('request-micro')
 var urlJoin = require('url-join')
+var linereader = require('./lib/linereader')
 
 module.exports = cerberus
 
@@ -26,13 +27,19 @@ function cerberus (options) {
   }
   // Copy so we can safely mutate
   options = shallowCopy({}, options)
+  options.log = options.debug ? log : noop
 
   // Override options with env variables
-  if (process.env.CERBERUS_TOKEN) {
-    options.token = process.env.CERBERUS_TOKEN
+  var envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
+  if (envToken) {
+    options.log('environment variable token found', envToken)
+    options.token = envToken
   }
-  if (process.env.CERBERUS_ADDR) {
-    options.hostUrl = process.env.CERBERUS_ADDR
+
+  var envHost = getEnvironmentVariable(process.env.CERBERUS_ADDR)
+  if (envHost) {
+    options.log('environment variable host url found', envHost)
+    options.hostUrl = envHost
   }
   // Validate options
   if (!options.aws || typeof options.aws !== 'object') {
@@ -41,8 +48,6 @@ function cerberus (options) {
   if (typeof options.hostUrl !== 'string') {
     throw new Error('options.hostUrl must be a URL string')
   }
-
-  options.log = options.debug ? log : noop
 
   var get = function (keyPath, cb) { return callCerberus('GET', options, keyPath, undefined, cb) }
   var set = function (keyPath, data, cb) { return callCerberus('POST', options, keyPath, data, cb) }
@@ -75,10 +80,12 @@ function callCerberus (type, options, keyPath, data, cb) {
     // Otherwise
     throw new Error('No callback was supplied, and global.Promise is not a function. You must provide an async interface')
   }
+  options.log('getting token')
   getToken(options, function (err, authToken) {
+    if (err) return cb(err)
+    if (!authToken) return cb('Token is null')
     var url = urlJoin(options.hostUrl, cerberusVersion, 'secret', keyPath)
     options.log('token retrieved', authToken, keyPath, url)
-    if (err) return cb(err)
     request({
       method: type === 'LIST' ? 'GET' : type,
       url: url + (type === 'LIST' ? '?list=true' : ''),
@@ -100,14 +107,58 @@ function getToken (options, cb) {
   }
 
   // Already has token
-  if (options.token) return cb(null, options.token)
+  if (options.token) {
+    options.log('returning stored token')
+    return cb(null, options.token)
+  }
+
+  // Get token from environment
+  if (options.authorization || hasEnvironmentCreds()) {
+    options.log('getting token from credentials')
+    if (!options.authorization) options.authorization = makeAuthHeader(process.env.CERBERUS_USERNAME, process.env.CERBERUS_PASSWORD)
+    return getCredsToken(options, cb)
+  }
 
   // Default to Ec2 if lambdaContext is missing
   var handler = options.lambdaContext ? getLambdaMetadata : getEc2Metadata
   handler(options, function (err, metadata) {
-    if (err) return cb(err)
-    options.log('handler metadata', metadata)
+    if (err || !metadata) {
+      options.log('auth handler returned', err || metadata)
+      if (!options.prompt) return cb(err || 'No metadata returned from authentication handler')
+      else return getPromptToken(options, cb)
+    }
+    options.log('handler metadata retrieved', metadata)
     authenticate(options, metadata.accountId, metadata.roleName, metadata.region, cb)
+  })
+}
+
+function getCredsToken (options, cb) {
+  request({
+    method: 'GET',
+    url: urlJoin(options.hostUrl, cerberusVersion, 'auth/user'),
+    headers: { 'authorization': options.authorization },
+    protocol: 'https',
+    json: true
+  }, function (err, res, token) {
+    options.log('user token retrieved', token)
+    if (err) return cb(err)
+    if (token && token.errors) return cb(token.errors)
+    options.tokenExpiresAt = Date.now + token['lease_duration'] - 600
+    options.token = token['client_token']
+    cb(null, options.token)
+  })
+}
+
+function getPromptToken (options, cb) {
+  if (!options.prompt) throw new Error('Tried to get prompt illegally')
+  options.log('getting credentials from prompt')
+  linereader.readLine({ prompt: 'Nike Email: ' }, function (err, email) {
+    if (err) return cb(err)
+    linereader.readLine({ prompt: 'Password: ', replace: '*' }, function (pErr, password) {
+      if (pErr) return cb(pErr)
+      options.authorization = makeAuthHeader(email, password)
+      getCredsToken(options, cb)
+    })
   })
 }
 
@@ -118,6 +169,7 @@ function authenticate (options, accountId, roleName, region, cb) {
     json: true
   }, function (err, res, authResult) {
     if (err) return cb(err)
+    // options.log('authresult', authResult, res)
     if (!authResult) return cb(new Error('cerberus returned empty authentication result'))
     options.log('auth result', authResult)
     decryptAuthResult(options, region, authResult, function (err, token) {
@@ -169,7 +221,8 @@ function getEc2Metadata (options, cb) {
 
   request({ url: ec2MetadataUrl, json: true }, function (err, result, data) {
     if (err) return cb(err)
-    if (data.Code !== 'Success') return cb(data)
+    if (!data || data.Code !== 'Success') return cb(data)
+    options.log(data)
 
     var arn = data.InstanceProfileArn.split(':')
     metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
@@ -201,4 +254,17 @@ function getLambdaMetadata (options, cb) {
     options.log('retrieved metadata values', metadata)
     cb(null, metadata)
   })
+}
+
+function getEnvironmentVariable (value) {
+  return value && value !== 'undefined' && value !== undefined && value !== null ? value : undefined
+}
+
+function hasEnvironmentCreds () {
+  return (getEnvironmentVariable(process.env.CERBERUS_USERNAME) &&
+    getEnvironmentVariable(process.env.CERBERUS_PASSWORD))
+}
+
+function makeAuthHeader (username, password) {
+  return 'Basic ' + new Buffer(username + ':' + password).toString('base64')
 }
