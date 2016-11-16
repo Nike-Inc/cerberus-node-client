@@ -1,15 +1,104 @@
 'use strict'
 
-var test = require('blue-tape')
-var proxyquire = require('proxyquire')
+// Configuration
+//
 
-var mock = function () {}
-proxyquire('../index', {
-  'request-micro': function () {
-    mock.apply(null, arguments)
+var test = require('blue-tape')
+var linereader = require('../lib/linereader')
+
+var linereads = []
+linereader.readLine = (options, cb) => cb(null, linereads.shift())
+
+var http = require('http')
+var cerberus = require('../index')
+var testPort = process.env.TEST_PORT || 3032
+var cerberusHost = 'http://localhost:' + testPort
+
+var mockCalls = []
+function trimRequest (req) {
+  return {
+    headers: req.headers,
+    path: req.url,
+    method: req.method,
+    body: req.body
   }
-})
-var cerberus = require('../index.js')
+}
+var defaultCerberusResponse = {
+  auth_data: new Buffer('test').toString('base64')
+}
+var defaultToken = {
+  'client_token': Math.floor(Math.random() * (1e6 + 1)),
+  'lease_duration': 1,
+  'renewable': 'true'
+}
+var mockHttp = (action, handlerOrValue) => {
+  mockCalls.length = 0
+  return new Promise((resolve, reject) => {
+    var defaultHandler = (req, res) => {
+      var result = typeof handlerOrValue !== 'function' && handlerOrValue !== undefined ? handlerOrValue : defaultCerberusResponse
+      // console.log(trimRequest(req))
+      mockCalls.push({req: trimRequest(req), result})
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify(result))
+    }
+    var server = http.createServer(typeof handlerOrValue === 'function' ? handlerOrValue : defaultHandler)
+    server.listen(testPort, () => {
+      Promise.resolve(action())
+        .catch(err => {
+          console.log('error handling http action', err, mockCalls)
+          server.close()
+          reject(err)
+        })
+        .then((result) => {
+          server.close()
+          resolve(result)
+        })
+    })
+  })
+}
+
+var lambdaContext = {
+  invokedFunctionArn: 'arn:aws:lambda:us-east-1:1234567890:function:NU-cerberus-test'
+}
+var lambdaConfiguration = {
+  'FunctionName': 'NU-cerberus-test',
+  'FunctionArn': 'arn:aws:lambda:us-east-1:123456789:function:NU-cerberus-test',
+  'Role': 'arn:aws:iam::123456789:role/lambda_basic_execution',
+  'Description': 'Test lambda for NU-cerberus'
+}
+var throwErr
+var aws = {
+  Lambda: function (stuff) {
+    return {
+      getFunctionConfiguration: (params, cb) => {
+        switch (throwErr) {
+          case 'auth': return cb({stack: 'some stack'}, null)
+        }
+        return cb(null, lambdaConfiguration)
+      }
+    }
+  },
+  KMS: function (stuff) {
+    return {
+      decrypt: (text, cb) => {
+        switch (throwErr) {
+          case 'auth_data': return cb({stack: 'some stack'}, null)
+          case 'parse_err': return cb(null, 'parse fail')
+        }
+
+        return cb(null, {
+          Plaintext: JSON.stringify(defaultToken)
+        })
+      }
+    }
+  },
+  config: {
+    region: 'us-east-1'
+  }
+}
+
+// Tests
+//
 
 test('module loads', t => {
   t.ok(cerberus, 'module loaded')
@@ -28,35 +117,59 @@ test('uses environment variable for token when present', t => {
   var original = process.env.CERBERUS_TOKEN
   var testToken = 'test token'
   process.env.CERBERUS_TOKEN = testToken
-  var client = cerberus({ hostUrl: 'test', aws: {} })
+  var client = cerberus({ hostUrl: cerberusHost, aws: {} })
 
-  mock = (options, cb) => {
-    process.env.CERBERUS_TOKEN = original
-    t.equal(options.headers['X-Vault-Token'], testToken, 'Vault header uses CERBERUS_TOKEN')
-    t.end()
-  }
-  client.get('test')
+  mockHttp(() => client.get('test'))
+    .then(() => {
+      t.equal(mockCalls[0].req.headers['x-vault-token'], testToken, 'Vault header uses CERBERUS_TOKEN')
+      process.env.CERBERUS_TOKEN = original
+      t.end()
+    })
 })
 
 test('uses environment variable for hostUrl when present', t => {
   var original = process.env.CERBERUS_ADDR
-  var testUrl = 'test url'
-  process.env.CERBERUS_ADDR = testUrl
-  var client = cerberus({ aws: {} })
+  process.env.CERBERUS_ADDR = cerberusHost
+  var client = cerberus({ aws: aws, lambdaContext })
 
-  mock = (options, cb) => {
-    process.env.CERBERUS_ADDR = original
-    t.equal(options.url, 'test url/v1/secret/test', 'url uses CERBERUS_ADDR')
-    t.end()
-  }
-  client.get('test')
+  t.plan(1)
+
+  mockHttp(() => client.get('test'))
+    .then(result => {
+      process.env.CERBERUS_ADDR = original
+      t.ok(mockCalls.length, 'http called')
+      t.end()
+    })
 })
 
-test('get calls request', t => {
-  var client = cerberus({ hostUrl: 'test', aws: {}, token: '1' })
-  mock = (options, cb) => {
-    t.ok(true)
-    t.end()
-  }
-  client.get('test')
+test('Prompt flow prompts if config option is set and other methods fail', t => {
+  process.env.CERBERUS_TOKEN = undefined
+  t.plan(2)
+
+  var client = cerberus({ aws: {
+    Lambda: function () {
+      return {
+        getFunctionConfiguration: (data, cb) => {
+          t.ok(true, 'lambda called')
+          cb({})
+        }
+      }
+    }
+  }, hostUrl: cerberusHost, lambdaContext, prompt: true })
+
+  linereads.push('user')
+  linereads.push('password')
+
+  mockHttp(() => client.get('test'), (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    if (req.url.indexOf('auth/user') !== -1) {
+      t.equal('Basic ' + new Buffer('user:password').toString('base64'), req.headers.authorization, 'sent prompted credentials')
+      res.end(JSON.stringify(defaultToken))
+    } else {
+      res.end(JSON.stringify(defaultCerberusResponse))
+    }
+  })
+    .then(result => {
+      t.end()
+    })
 })

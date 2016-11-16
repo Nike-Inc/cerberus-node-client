@@ -1,46 +1,14 @@
 # Cerberus Client (node)
 
-This is a client for interacting with a [Cerberus backend](http://bitbucket.nike.com/projects/CPE/repos/cerberus-management-service/browse). It can be used in Amazon EC2 instances and Amazon Lambdas.
+This is a client for interacting with a [Cerberus backend](https://github.com/Nike-Inc/cerberus). It can be used in Amazon EC2 instances and Amazon Lambdas.
 
 # Installation
 
-You have two installation options. The private Nike npm registry, or directly from bitbucket as a git package.
-
-## Private npm
-
-If you want to install with npm you will need to configure npm to use the private Nike npm registry with the `@nike` npm scope. To do this, create a file called `.npmrc` with the following contents
-
 ```
-@nike:registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike/
+npm install --save cerberus-node-client
 ```
 
-The `.npmrc` file can either be **project-level**, meaning it is in the root of your project, alongside the `package.json` file, or it can be in your user directory `~/.npmrc`. The per-project file simplifies your build process, since the build machine doesn't need any additional configuration, but it must be mode `600` (`chmod 600 .npmrc`) and it must be duplicated in every project you want to use it in. The user directory file means your build machine needs the same `.npmrc` file.
-
-It's up to you which one to use, both work. Once that is done, install from npm as normal.
-
-```
-npm install --save @nike/cerberus-node-client
-```
-
-Then, require the package with `var cerberus = require('@nike/cerberus-node-client')`
-
-If you are also using nike packages that are unscoped (that don't use the `@nike` prefix), you will need to include the unscoped registry in your `.npmrc`
-
-```
-registry=http://artifactory.nike.com/artifactory/api/npm/npm-nike
-```
-
-These are not mutually exclusive, but some problems have occured in the past with both entries. In general, when using Nike npm packages you should prefer to install with the `@nike` scope (most Nike packages are published there). If you run into an issues, please file an bug or let someone know in the `#js-cd` channel on Nike Digital's Slack.
-
-## Install as git package
-
-Installing with a git package has the advantage of not required **any** additional configuration on your machine or the build machine, but it requires that you have read access to the repository and produces a dependency entry in `package.json` that includes the entire url. If you don't have read permission on this repository, this method won't work for you.
-
-To install, just run the following command
-
-```
-npm install --save git+http://bitbucket.nike.com/scm/cer/node-lib-cerberus-client.git
-```
+Then, require the package with `var cerberus = require('cerberus-node-client')`
 
 ## Usage with the AWS SDK
 
@@ -51,7 +19,7 @@ var AWS = require('aws-sdk')
 
 var client = cerberus({
     aws: AWS,
-    hostUrl: 'https://test.cerberus.nikecloud.com',
+    hostUrl: YOUR_CERBERUS_HOST,
     lambdaContext: context
   })
 ```
@@ -85,7 +53,7 @@ var client = cerberus({
     // string, The cerberus URL to use.
     // OVERRIDDEN by process.env.CERBERUS_ADDR
     // Either this or the env variable is required
-    hostUrl: 'https://test.cerberus.nikecloud.com',
+    hostUrl: YOUR_CERBERUS_HOST,
 
 
     // The context given to the lambda handler
@@ -126,7 +94,7 @@ To use the promise API omit the callback parameter (always the last one), and en
 
   ```javascript
   var AWS = require('aws-sdk')
-  var cerberus = require('@nike/cerberus-node-client')
+  var cerberus = require('cerberus-node-client')
   var config = require('./config') // you will need to provide this
   var urlJoin = require('url-join')
 
@@ -151,3 +119,7 @@ To use the promise API omit the callback parameter (always the last one), and en
   ```
 
   As long as the rest of your app `require`s your wrapper module, the context will be set and everyone should work.
+
+  # Maintenance
+
+  This project is maintained by Tim Kye `timothy.kye@nike.com`
