@@ -1,6 +1,6 @@
 # Cerberus Client (node)
 
-This is a client for interacting with a [Cerberus backend](https://github.com/Nike-Inc/cerberus). It can be used in Amazon EC2 instances and Amazon Lambdas.
+This is a client for interacting with a [Cerberus backend](http://engineering.nike.com/cerberus). It can be used in Amazon EC2 instances and Amazon Lambdas.
 
 # Installation
 
@@ -123,3 +123,13 @@ To use the promise API omit the callback parameter (always the last one), and en
   # Maintenance
 
   This project is maintained by Tim Kye `timothy.kye@nike.com`
+
+  ## License
+
+  Cerberus Management Service is released under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+  [travis]:https://travis-ci.org/Nike-Inc/cerberus-management-service
+  [travis img]:https://api.travis-ci.org/Nike-Inc/cerberus-management-service.svg?branch=master
+
+  [license]:LICENSE.txt
+  [license img]:https://img.shields.io/badge/License-Apache%202-blue.svg
