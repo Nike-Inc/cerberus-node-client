@@ -88,48 +88,48 @@ To use the promise API omit the callback parameter (always the last one), and en
 * `setLambdaContext(context` - Set the `lambdaContext` after construction. See *Providing the client to your app* for details
 
 
-  # Providing the client to your app
+# Providing the client to your app
 
-  Using Cerberus in your app will be easier if you create a wrapper module that handles construction and exports the constructed client. A standard wrappper would look like this
+Using Cerberus in your app will be easier if you create a wrapper module that handles construction and exports the constructed client. A standard wrappper would look like this
 
-  ```javascript
-  var AWS = require('aws-sdk')
-  var cerberus = require('cerberus-node-client')
-  var config = require('./config') // you will need to provide this
-  var urlJoin = require('url-join')
+```javascript
+var AWS = require('aws-sdk')
+var cerberus = require('cerberus-node-client')
+var config = require('./config') // you will need to provide this
+var urlJoin = require('url-join')
 
-  var client = cerberus({ aws: AWS, hostUrl: config.cerberus.host })
-  // Simplify keyPath creation
-  client.makePath = urlJoin.bind(urlJoin, config.cerberus.name)
+var client = cerberus({ aws: AWS, hostUrl: config.cerberus.host })
+// Simplify keyPath creation
+client.makePath = urlJoin.bind(urlJoin, config.cerberus.name)
 
-  module.exports = client
-  ```
+module.exports = client
+```
 
-  If you are using a Lambda, the `lambdaContext` cannot be set at startup, it can only be set from inside the lambda `handler`. Luckily, you can set the context on an already constructed client.
+If you are using a Lambda, the `lambdaContext` cannot be set at startup, it can only be set from inside the lambda `handler`. Luckily, you can set the context on an already constructed client.
 
-  ```javascript
-  var cerberus = require('./util/cerberus') // or wherever you put your wrapper
+```javascript
+var cerberus = require('./util/cerberus') // or wherever you put your wrapper
 
-  exports.handler = handler
+exports.handler = handler
 
-  function handler (event, context, callback) {
-    context.callbackWaitsForEmptyEventLoop = false
-    cerberus.setLambdaContext(context)
-  }
-  ```
+function handler (event, context, callback) {
+  context.callbackWaitsForEmptyEventLoop = false
+  cerberus.setLambdaContext(context)
+}
+```
 
-  As long as the rest of your app `require`s your wrapper module, the context will be set and everyone should work.
+As long as the rest of your app `require`s your wrapper module, the context will be set and everyone should work.
 
-  # Maintenance
+# Maintenance
 
-  This project is maintained by Tim Kye `timothy.kye@nike.com`
+This project is maintained by Tim Kye `timothy.kye@nike.com`
 
-  ## License
+## License
 
-  Cerberus Management Service is released under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+Cerberus Management Service is released under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-  [travis]:https://travis-ci.org/Nike-Inc/cerberus-management-service
-  [travis img]:https://api.travis-ci.org/Nike-Inc/cerberus-management-service.svg?branch=master
+[travis]:https://travis-ci.org/Nike-Inc/cerberus-management-service
+[travis img]:https://api.travis-ci.org/Nike-Inc/cerberus-management-service.svg?branch=master
 
-  [license]:LICENSE.txt
-  [license img]:https://img.shields.io/badge/License-Apache%202-blue.svg
+[license]:LICENSE.txt
+[license img]:https://img.shields.io/badge/License-Apache%202-blue.svg
