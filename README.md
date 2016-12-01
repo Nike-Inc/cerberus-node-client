@@ -30,7 +30,7 @@ It also ensures that locally or globally scoped AWS configurations can be easily
 
 ## Authentication
 
-The cerberus client supports three different configuration modes.
+The cerberus client supports four different configuration modes.
 
 * Lambda Context - Pass in the `context` from your Lambda Handler `handler(event, context)` as the `lambdaContext` parameter.
 * EC2 - This is the default mode, it will be used if the other two are not present.
