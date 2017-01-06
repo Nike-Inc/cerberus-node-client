@@ -1,6 +1,8 @@
-# Cerberus Client (node)
+# Cerberus Node Client
 
-This is a client for interacting with a [Cerberus backend](http://engineering.nike.com/cerberus). It can be used in Amazon EC2 instances and Amazon Lambdas.
+This is a node client for interacting with a Cerberus backend. It can be used in Amazon EC2 instances and Amazon Lambdas.
+
+To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
 # Installation
 

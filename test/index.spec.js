@@ -41,6 +41,7 @@ var mockHttp = (action, handlerOrValue) => {
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify(result))
     }
+
     var server = http.createServer(typeof handlerOrValue === 'function' ? handlerOrValue : defaultHandler)
     server.listen(testPort, () => {
       Promise.resolve(action())
@@ -144,7 +145,7 @@ test('uses environment variable for hostUrl when present', t => {
 
 test('Prompt flow prompts if config option is set and other methods fail', t => {
   process.env.CERBERUS_TOKEN = undefined
-  t.plan(2)
+  t.plan(3) // the 3rd assertion is present to ensure the http server closes before the test completes
 
   var client = cerberus({ aws: {
     Lambda: function () {
@@ -160,7 +161,8 @@ test('Prompt flow prompts if config option is set and other methods fail', t => 
   linereads.push('user')
   linereads.push('password')
 
-  mockHttp(() => client.get('test'), (req, res) => {
+  const action = () => client.get('test')
+  const handler = (req, res) => {
     res.setHeader('Content-Type', 'application/json')
     if (req.url.indexOf('auth/user') !== -1) {
       t.equal('Basic ' + new Buffer('user:password').toString('base64'), req.headers.authorization, 'sent prompted credentials')
@@ -168,8 +170,35 @@ test('Prompt flow prompts if config option is set and other methods fail', t => 
     } else {
       res.end(JSON.stringify(defaultCerberusResponse))
     }
-  })
+  }
+
+  mockHttp(action, handler)
     .then(result => {
+      t.pass('letting the promise finish so the server can close properly')
+      t.end()
+    },
+    reason => {
+      t.fail(reason)
+      t.end(reason)
+    })
+})
+
+test('If request returns an errors array treat it like an error in the post-getToken flow', t => {
+  process.env.CERBERUS_TOKEN = defaultToken
+  let client = cerberus({ hostUrl: cerberusHost, aws: {} })
+
+  const action = () => client.put('some/test/path', 'System expects a JSON object, not a string, this should fail')
+  const handler = (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ errors: [ 'Failed to parse JSON input: json: cannot unmarshal string into Go value of type map[string]interface {}' ] }))
+  }
+
+  mockHttp(action, handler)
+    .then(result => {
+      t.fail('The call should not succeed')
+      t.end()
+    }, reason => {
+      t.ok(reason === 'Failed to parse JSON input: json: cannot unmarshal string into Go value of type map[string]interface {}')
       t.end()
     })
 })
