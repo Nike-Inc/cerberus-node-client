@@ -95,7 +95,9 @@ function callCerberus (type, options, keyPath, data, cb) {
     }, function (err, res, result) {
       options.log('key retrieved', result)
       if (err) return cb(err)
-      else return cb(null, result && result.data)
+      if (result && result.errors && result.errors.length > 0) return cb(result.errors[0])
+
+      return cb(null, result && result.data)
     })
   })
 }
