@@ -103,7 +103,7 @@ function callCerberus (type, options, keyPath, data, cb) {
 }
 
 function getToken (options, cb) {
-  if (options.tokenExpiresAt && (options.tokenExpiresAt <= ( Date.now() / 1000 ) )) {  // token TTL in secs, Date.now in ms
+  if (options.tokenExpiresAt && (options.tokenExpiresAt <= ( Date.now() / 1000 ) )) {  // tokenExpiresAt in secs, Date.now in ms
     options.tokenExpiresAt = null
     options.token = null
   }
