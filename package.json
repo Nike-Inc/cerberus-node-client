@@ -11,7 +11,7 @@
     "test:coverage:error-only": "covert -c -q test/*.js",
     "test:lineread": "node test/lineread.manual.js",
     "test": "npm run style && npm run test:unit",
-    "test:watch": "npm run test:unit & chokidar 'lib/**/*.js' 'index.js' 'test/**/*.spec.js' --polling -c \"npm run test:unit -s\""
+    "test:watch": "npm run test:unit -s & chokidar 'lib/**/*.js' 'index.js' 'test/**/*.spec.js' --polling -c \"npm run test:unit -s\""
   },
   "repository": {
     "type": "git",

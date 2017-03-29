@@ -103,7 +103,7 @@ function callCerberus (type, options, keyPath, data, cb) {
 }
 
 function getToken (options, cb) {
-  if (options.tokenExpiresAt && (options.tokenExpiresAt <= ( Date.now() / 1000 ) )) {  // tokenExpiresAt in secs, Date.now in ms
+  if (options.tokenExpiresAt && (options.tokenExpiresAt <= (Date.now() / 1000))) {  // tokenExpiresAt in secs, Date.now in ms
     options.tokenExpiresAt = null
     options.token = null
   }
@@ -146,7 +146,7 @@ function getCredsToken (options, cb) {
     if (err) return cb(err)
     if (token && token.errors) return cb(token.errors)
     // Expire 10 seconds before lease is up, to account for latency
-    options.tokenExpiresAt = ( Date.now() / 1000 ) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
+    options.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
     options.token = token['client_token']
     cb(null, options.token)
   })
@@ -179,7 +179,7 @@ function authenticate (options, accountId, roleName, region, cb) {
       if (err) return cb(err)
       options.log('decrypt result', token)
       // Expire 10 seconds before lease is up, to account for latency
-      options.tokenExpiresAt = ( Date.now() / 1000 ) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
+      options.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
       options.token = token['client_token']
       cb(null, options.token)
     })

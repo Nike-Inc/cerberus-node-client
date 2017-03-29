@@ -46,7 +46,7 @@ var mockHttp = (action, handlerOrValue) => {
     server.listen(testPort, () => {
       Promise.resolve(action())
         .catch(err => {
-          console.log('error handling http action', err, mockCalls)
+          // console.log('error handling http action', err, mockCalls)
           server.close()
           reject(err)
         })
@@ -196,9 +196,52 @@ test('If request returns an errors array treat it like an error in the post-getT
   mockHttp(action, handler)
     .then(result => {
       t.fail('The call should not succeed')
+      process.env.CERBERUS_TOKEN = undefined
       t.end()
     }, reason => {
+      process.env.CERBERUS_TOKEN = undefined
       t.ok(reason === 'Failed to parse JSON input: json: cannot unmarshal string into Go value of type map[string]interface {}')
       t.end()
     })
+})
+
+test('If cerberus returns empty response return error', t => {
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'), {})
+    .then(result => {
+      console.log('test result', result)
+      t.fail()
+      t.end()
+    })
+    .catch(error => {
+      // t.comment(error)
+      t.ok(/cannot decrypt token/.test(error && error.message), 'error from auth result')
+      t.end()
+    })
+})
+
+test('If cerberus returns empty response return error using callbacks', t => {
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+  mockCalls.length = 0
+  var server = http.createServer((req, res) => {
+    var result = {}
+    // console.log(req)
+    mockCalls.push({req: trimRequest(req), result})
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify(result))
+  })
+
+  server.listen(testPort, () => {
+    client.get('test', (err, result) => {
+      server.close()
+      t.comment(err)
+      t.ok(/cannot decrypt token/.test(err && err.message), 'error from auth result')
+      t.end()
+    })
+  })
 })
