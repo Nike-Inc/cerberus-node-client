@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [[0.2.4] - 2017-03-31]
+### Added
+- Check for non-200 status from Cerberus Key Request
+
 ## [[0.2.3] - 2017-03-31]
 ### Added
 - Return error from Cerberus for auth calls

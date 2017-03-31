@@ -223,6 +223,36 @@ test('If cerberus returns error response return error', t => {
     })
 })
 
+test('If cerberus returns 404 response return error', t => {
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  var handler = (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    mockCalls.push({req: trimRequest(req), result})
+    var result
+    if (req.url === '/v1/auth/iam-role') {
+      result = defaultCerberusResponse
+    } else {
+      result = { errors: [] }
+      res.statusCode = 404
+    }
+    res.end(JSON.stringify(result))
+  }
+
+  mockHttp(() => client.get('test'), handler)
+    .then(result => {
+      console.log('test result', result)
+      t.fail()
+      t.end()
+    })
+    .catch(error => {
+      t.ok(/Status: 404/.test(error && error.message), 'error from auth result')
+      t.end()
+    })
+})
+
 test('If cerberus returns empty response return error', t => {
   var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
 

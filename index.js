@@ -93,8 +93,9 @@ function callCerberus (type, options, keyPath, data, cb) {
       body: data,
       json: true
     }, function (err, res, result) {
-      options.log('key retrieved', result)
+      options.log('key retrieved', res.statusCode.toString(), result)
       if (err) return cb(err)
+      if (res.statusCode && res.statusCode.toString()[0] !== '2') return cb(new Error('Key Request error, Status: ' + res.statusCode))
       if (result && result.errors && result.errors.length > 0) return cb(result.errors[0])
 
       return cb(null, result && result.data)
