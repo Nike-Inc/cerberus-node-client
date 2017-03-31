@@ -188,6 +188,12 @@ function authenticate (options, accountId, roleName, region, cb) {
 
 function decryptAuthResult (options, region, authResult, cb) {
   options.log('decrypting', authResult)
+  if (authResult.errors) {
+    var message = authResult.errors instanceof Array
+      ? authResult.errors.map(e => e.message).join(', ')
+      : JSON.stringify(authResult.errors)
+    return cb(new Error(`Cerberus Authentication error: ${message}`))
+  }
   if (!authResult['auth_data']) {
     return cb(new Error('cannot decrypt token, auth_data is missing'))
   }

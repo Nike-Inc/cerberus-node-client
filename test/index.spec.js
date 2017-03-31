@@ -205,6 +205,24 @@ test('If request returns an errors array treat it like an error in the post-getT
     })
 })
 
+test('If cerberus returns error response return error', t => {
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'), { error_id: 'f887ba2a-d104-4323-93e0-d22304932f56', errors: [ { code: 99216, message: 'The specified IAM role is not valid.' } ] })
+    .then(result => {
+      console.log('test result', result)
+      t.fail()
+      t.end()
+    })
+    .catch(error => {
+      // t.comment(error)
+      t.ok(/IAM role is not valid/.test(error && error.message), 'error from auth result')
+      t.end()
+    })
+})
+
 test('If cerberus returns empty response return error', t => {
   var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
 
