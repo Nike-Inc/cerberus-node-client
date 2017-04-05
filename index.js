@@ -23,37 +23,37 @@ function shallowCopy (target, source) {
 // Client Constructor
 function cerberus (options) {
   if (!options || typeof options !== 'object') {
-    throw new Error('options parameter is required')
+    throw new Error('context parameter is required')
   }
   // Copy so we can safely mutate
-  options = shallowCopy({}, options)
-  options.log = options.debug ? log : noop
+  var context = shallowCopy({}, options)
+  context.log = context.debug ? log : noop
 
-  // Override options with env variables
+  // Override context with env variables
   var envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
   if (envToken) {
-    options.log('environment variable token found', envToken)
-    options.token = envToken
+    context.log('environment variable token found', envToken)
+    context.token = envToken
   }
 
   var envHost = getEnvironmentVariable(process.env.CERBERUS_ADDR)
   if (envHost) {
-    options.log('environment variable host url found', envHost)
-    options.hostUrl = envHost
+    context.log('environment variable host url found', envHost)
+    context.hostUrl = envHost
   }
-  // Validate options
-  if (!options.aws || typeof options.aws !== 'object') {
+  // Validate context
+  if (!context.aws || typeof context.aws !== 'object') {
     throw new Error('options.aws parameter is required')
   }
-  if (typeof options.hostUrl !== 'string') {
+  if (typeof context.hostUrl !== 'string') {
     throw new Error('options.hostUrl must be a URL string')
   }
 
-  var get = function (keyPath, cb) { return callCerberus('GET', options, keyPath, undefined, cb) }
-  var set = function (keyPath, data, cb) { return callCerberus('POST', options, keyPath, data, cb) }
-  var remove = function (keyPath, cb) { return callCerberus('DELETE', options, keyPath, undefined, cb) }
-  var list = function (keyPath, cb) { return callCerberus('LIST', options, keyPath, undefined, cb) }
-  var setLambdaContext = function (context) { options.lambdaContext = context }
+  var get = function (keyPath, cb) { return callCerberus('GET', context, keyPath, undefined, cb) }
+  var set = function (keyPath, data, cb) { return callCerberus('POST', context, keyPath, data, cb) }
+  var remove = function (keyPath, cb) { return callCerberus('DELETE', context, keyPath, undefined, cb) }
+  var list = function (keyPath, cb) { return callCerberus('LIST', context, keyPath, undefined, cb) }
+  var setLambdaContext = function (context) { context.lambdaContext = context }
 
   return {
     get: get,
@@ -66,12 +66,12 @@ function cerberus (options) {
   }
 }
 
-function callCerberus (type, options, keyPath, data, cb) {
+function callCerberus (type, context, keyPath, data, cb) {
   if (cb === undefined) {
     if (typeof global.Promise === 'function') {
-      options.log('promise path')
+      context.log('promise path')
       return new Promise(function (resolve, reject) {
-        callCerberus(type, options, keyPath, data, function (err, result) {
+        callCerberus(type, context, keyPath, data, function (err, result) {
           if (err) reject(err)
           else resolve(result)
         })
@@ -80,12 +80,12 @@ function callCerberus (type, options, keyPath, data, cb) {
     // Otherwise
     throw new Error('No callback was supplied, and global.Promise is not a function. You must provide an async interface')
   }
-  options.log('getting token')
-  getToken(options, function (err, authToken) {
+  context.log('getting token')
+  getToken(context, function (err, authToken) {
     if (err) return cb(err)
     if (!authToken) return cb('Token is null')
-    var url = urlJoin(options.hostUrl, cerberusVersion, 'secret', keyPath)
-    options.log('token retrieved', authToken, keyPath, url)
+    var url = urlJoin(context.hostUrl, cerberusVersion, 'secret', keyPath)
+    context.log('token retrieved', authToken, keyPath, url)
     request({
       method: type === 'LIST' ? 'GET' : type,
       url: url + (type === 'LIST' ? '?list=true' : ''),
@@ -93,7 +93,7 @@ function callCerberus (type, options, keyPath, data, cb) {
       body: data,
       json: true
     }, function (err, res, result) {
-      options.log('key retrieved', res.statusCode.toString(), result)
+      context.log('key retrieved', res.statusCode.toString(), result)
       if (err) return cb(err)
       if (result && result.errors && result.errors.length > 0) return cb(result.errors[0])
       if (res.statusCode && res.statusCode.toString()[0] !== '2') return cb(new Error('Key Request error, Status: ' + res.statusCode))
@@ -103,92 +103,106 @@ function callCerberus (type, options, keyPath, data, cb) {
   })
 }
 
-function getToken (options, cb) {
-  if (options.tokenExpiresAt && (options.tokenExpiresAt <= (Date.now() / 1000))) {  // tokenExpiresAt in secs, Date.now in ms
-    options.tokenExpiresAt = null
-    options.token = null
+function getToken (context, cb) {
+  // tokenExpiresAt in secs, Date.now in ms
+  if (context.tokenExpiresAt && (context.tokenExpiresAt <= (Date.now() / 1000))) {
+    context.tokenExpiresAt = null
+    context.token = null
   }
 
   // Already has token
-  if (options.token) {
-    options.log('returning stored token')
-    return cb(null, options.token)
-  }
-
-  // Get token from environment
-  if (options.authorization || hasEnvironmentCreds()) {
-    options.log('getting token from credentials')
-    if (!options.authorization) options.authorization = makeAuthHeader(process.env.CERBERUS_USERNAME, process.env.CERBERUS_PASSWORD)
-    return getCredsToken(options, cb)
+  if (context.token) {
+    context.log('returning stored token')
+    return cb(null, context.token)
   }
 
   // Default to Ec2 if lambdaContext is missing
-  var handler = options.lambdaContext ? getLambdaMetadata : getEc2Metadata
-  handler(options, function (err, metadata) {
+  var handler = context.lambdaContext ? getLambdaMetadata : getEc2Metadata
+  handler(context, function (err, metadata) {
     if (err || !metadata) {
-      options.log('auth handler returned', err || metadata)
-      if (!options.prompt) return cb(err || 'No metadata returned from authentication handler')
-      else return getPromptToken(options, cb)
+      context.log('auth handler returned', err || metadata)
+      if (!context.prompt) return cb(err || 'No metadata returned from authentication handler')
+      else return getPromptToken(context, cb)
     }
-    options.log('handler metadata retrieved', metadata)
-    authenticate(options, metadata.accountId, metadata.roleName, metadata.region, cb)
+    context.log('handler metadata retrieved', metadata)
+    authenticate(context, metadata.accountId, metadata.roleName, metadata.region, cb)
   })
 }
 
-function getCredsToken (options, cb) {
-  request({
-    method: 'GET',
-    url: urlJoin(options.hostUrl, cerberusVersion, 'auth/user'),
-    headers: { 'authorization': options.authorization },
-    protocol: 'https',
-    json: true
-  }, function (err, res, token) {
-    options.log('user token retrieved', token)
-    if (err) return cb(err)
-    if (token && token.errors) return cb(token.errors)
-    // Expire 10 seconds before lease is up, to account for latency
-    options.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
-    options.token = token['client_token']
-    cb(null, options.token)
-  })
+function getCredsToken (context, cb) {
+  
 }
 
-function getPromptToken (options, cb) {
-  if (!options.prompt) throw new Error('Tried to get prompt illegally')
-  options.log('getting credentials from prompt')
+function setToken(context, token, cb) {
+  // Expire 10 seconds before lease is up, to account for latency
+    context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
+    context.token = token['client_token']
+    cb(null, context.token)
+}
+
+function getPromptToken (context, cb) {
+  if (!context.prompt) throw new Error('Tried to get prompt illegally')
+  context.log('getting credentials from prompt')
   linereader.readLine({ prompt: 'Nike Email: ' }, function (err, email) {
     if (err) return cb(err)
     linereader.readLine({ prompt: 'Password: ', replace: '*' }, function (pErr, password) {
       if (pErr) return cb(pErr)
-      options.authorization = makeAuthHeader(email, password)
-      getCredsToken(options, cb)
+      context.authorization = makeAuthHeader(email, password)
+      request({
+        method: 'GET',
+        url: urlJoin(context.hostUrl, 'v2/auth/user'),
+        headers: { 'authorization': context.authorization },
+        protocol: 'https',
+        json: true
+      }, function (err, authResponse) {
+        if (err) return cb(err)
+        if (authResponse.data && authResponse.data.errors) return cb(authResponse.data.errors)
+        if (authResponse.data.status === 'mfa_req') {
+          context.log('mfa required', authResponse.data)
+          linereader.readLine({ prompt: 'MultiFactor Auth for ' + authResponse.data['data']['devices'][0]['name'] + ': ' }, function (err, mfaResponse) {
+            request.post({
+              url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
+              protocol: 'https',
+              json: true,
+              body: {
+                state_token: authResponse.data['data'].state_token,
+                device_id: authResponse.data['data']['devices'][0].id,
+                otp_token: mfaResponse
+              }
+            }, function (err, mfaResponse) {
+              if (err) return cb(err)
+              if (mfaResponse.data && mfaResponse.data.errors) return cb(mfaResponse.data.errors)
+              context.log('mfa response', mfaResponse.data)
+              setToken(context, mfaResponse.data['data']['client_token'], cb)
+            })
+          })
+        } else {
+          context.log('user token retrieved', authResponse.data)
+          setToken(context, authResponse.data['data']['client_token'], cb)
+        }
+      })
     })
   })
 }
 
-function authenticate (options, accountId, roleName, region, cb) {
+function authenticate (context, accountId, roleName, region, cb) {
   request.post({
-    url: urlJoin(options.hostUrl, cerberusVersion, '/auth/iam-role'),
+    url: urlJoin(context.hostUrl, cerberusVersion, '/auth/iam-role'),
     body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
     json: true
   }, function (err, res, authResult) {
     if (err) return cb(err)
-    // options.log('authresult', authResult, res)
     if (!authResult) return cb(new Error('cerberus returned empty authentication result'))
-    options.log('auth result', authResult)
-    decryptAuthResult(options, region, authResult, function (err, token) {
+    context.log('auth result', authResult)
+    decryptAuthResult(context, region, authResult, function (err, token) {
       if (err) return cb(err)
-      options.log('decrypt result', token)
-      // Expire 10 seconds before lease is up, to account for latency
-      options.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
-      options.token = token['client_token']
-      cb(null, options.token)
+      setToken(context, token, cb)
     })
   })
 }
 
-function decryptAuthResult (options, region, authResult, cb) {
-  options.log('decrypting', authResult)
+function decryptAuthResult (context, region, authResult, cb) {
+  context.log('decrypting', authResult)
   if (authResult.errors) {
     var message = authResult.errors instanceof Array
       ? authResult.errors.map(e => e.message).join(', ')
@@ -199,12 +213,12 @@ function decryptAuthResult (options, region, authResult, cb) {
     return cb(new Error('cannot decrypt token, auth_data is missing'))
   }
   var text = new Buffer(authResult['auth_data'], 'base64')
-  // options.log('config', options.aws.config)
-  // options.log('aws', options.aws)
-  var kms = new options.aws.KMS({ apiVersion: '2014-11-01', region: options.aws.config.region || region })
+  // context.log('config', context.aws.config)
+  // context.log('aws', context.aws)
+  var kms = new context.aws.KMS({ apiVersion: '2014-11-01', region: context.aws.config.region || region })
 
   kms.decrypt({ CiphertextBlob: text }, function (err, kmsResult) {
-    options.log('kms result', kmsResult)
+    context.log('kms result', kmsResult)
     if (err) {
       return cb(!isKmsAccessError(err)
         ? err
@@ -218,6 +232,7 @@ function decryptAuthResult (options, region, authResult, cb) {
       cb(new Error('Error parsing KMS decrypt Result. ' + e.message))
       return
     }
+    context.log('decrypt result', token)
     cb(null, token)
   })
 }
@@ -226,13 +241,13 @@ function isKmsAccessError (error) {
   return error.message && error.message.indexOf('The ciphertext references a key that either does not exist or you do not have access to') !== -1
 }
 
-function getEc2Metadata (options, cb) {
+function getEc2Metadata (context, cb) {
   var metadata = { }
 
   request({ url: ec2MetadataUrl, json: true }, function (err, result, data) {
     if (err) return cb(err)
     if (!data || data.Code !== 'Success') return cb(data)
-    options.log(data)
+    context.log(data)
 
     var arn = data.InstanceProfileArn.split(':')
     metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
@@ -241,38 +256,33 @@ function getEc2Metadata (options, cb) {
     request({ url: ec2InstanceDataUrl, json: true }, function (err, result, data) {
       if (err) return cb(err)
       metadata.region = data.region
-      options.log('metadata', metadata)
+      context.log('metadata', metadata)
       cb(null, metadata)
     })
   })
 }
 
-function getLambdaMetadata (options, cb) {
-  var lambda = new options.aws.Lambda({ apiVersion: '2015-03-31' })
-  var arn = options.lambdaContext.invokedFunctionArn.split(':')
+function getLambdaMetadata (context, cb) {
+  var lambda = new context.aws.Lambda({ apiVersion: '2015-03-31' })
+  var arn = context.lambdaContext.invokedFunctionArn.split(':')
 
   var metadata = { region: arn[3], accountId: arn[4] }
   var params = { FunctionName: arn[6], Qualifier: arn[7] }
 
   lambda.getFunctionConfiguration(params, function (err, data) {
     if (err) {
-      options.log('error getting metadata', err, err.stack)
+      context.log('error getting metadata', err, err.stack)
       return cb(err)
     }
 
     metadata.roleName = data.Role.split('/')[1]
-    options.log('retrieved metadata values', metadata)
+    context.log('retrieved metadata values', metadata)
     cb(null, metadata)
   })
 }
 
 function getEnvironmentVariable (value) {
   return value && value !== 'undefined' && value !== undefined && value !== null ? value : undefined
-}
-
-function hasEnvironmentCreds () {
-  return (getEnvironmentVariable(process.env.CERBERUS_USERNAME) &&
-    getEnvironmentVariable(process.env.CERBERUS_PASSWORD))
 }
 
 function makeAuthHeader (username, password) {
