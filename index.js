@@ -23,7 +23,7 @@ function shallowCopy (target, source) {
 // Client Constructor
 function cerberus (options) {
   if (!options || typeof options !== 'object') {
-    throw new Error('context parameter is required')
+    throw new Error('options parameter is required')
   }
   // Copy so we can safely mutate
   var context = shallowCopy({}, options)
@@ -129,15 +129,11 @@ function getToken (context, cb) {
   })
 }
 
-function getCredsToken (context, cb) {
-  
-}
-
-function setToken(context, token, cb) {
+function setToken (context, token, cb) {
   // Expire 10 seconds before lease is up, to account for latency
-    context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
-    context.token = token['client_token']
-    cb(null, context.token)
+  context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 10  // token TTL in secs, Date.now in ms
+  context.token = token['client_token']
+  cb(null, context.token)
 }
 
 function getPromptToken (context, cb) {
@@ -160,6 +156,7 @@ function getPromptToken (context, cb) {
         if (authResponse.data.status === 'mfa_req') {
           context.log('mfa required', authResponse.data)
           linereader.readLine({ prompt: 'MultiFactor Auth for ' + authResponse.data['data']['devices'][0]['name'] + ': ' }, function (err, mfaResponse) {
+            if (err) return cb(err)
             request.post({
               url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
               protocol: 'https',

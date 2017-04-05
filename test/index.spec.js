@@ -166,7 +166,7 @@ test('Prompt flow prompts if config option is set and other methods fail', t => 
     res.setHeader('Content-Type', 'application/json')
     if (req.url.indexOf('auth/user') !== -1) {
       t.equal('Basic ' + new Buffer('user:password').toString('base64'), req.headers.authorization, 'sent prompted credentials')
-      res.end(JSON.stringify(defaultToken))
+      res.end(JSON.stringify({ data: { client_token: defaultToken } }))
     } else {
       res.end(JSON.stringify(defaultCerberusResponse))
     }
