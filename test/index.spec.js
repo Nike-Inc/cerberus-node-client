@@ -143,6 +143,35 @@ test('uses environment variable for hostUrl when present', t => {
     })
 })
 
+test('uses lambdaContext from constructor', t => {
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'))
+    .then(result => {
+      t.ok(mockCalls.length, 'http called')
+      t.end()
+    })
+})
+
+test('uses lambdaContext from setLambdaContext', t => {
+  var client = cerberus({ aws: aws, hostUrl: cerberusHost })
+  client.setLambdaContext(lambdaContext)
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'))
+    .then(result => {
+      t.ok(mockCalls.length, 'http called')
+      t.end()
+    })
+    .catch(err => {
+      t.comment(err)
+      t.fail('error from cerberus')
+    })
+})
+
 test('Prompt flow prompts if config option is set and other methods fail', t => {
   process.env.CERBERUS_TOKEN = undefined
   t.plan(3) // the 3rd assertion is present to ensure the http server closes before the test completes

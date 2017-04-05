@@ -53,7 +53,7 @@ function cerberus (options) {
   var set = function (keyPath, data, cb) { return callCerberus('POST', context, keyPath, data, cb) }
   var remove = function (keyPath, cb) { return callCerberus('DELETE', context, keyPath, undefined, cb) }
   var list = function (keyPath, cb) { return callCerberus('LIST', context, keyPath, undefined, cb) }
-  var setLambdaContext = function (context) { context.lambdaContext = context }
+  var setLambdaContext = function (lambdaContext) { context.lambdaContext = lambdaContext }
 
   return {
     get: get,
