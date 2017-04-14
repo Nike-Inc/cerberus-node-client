@@ -12,6 +12,17 @@ npm install --save cerberus-node-client
 
 Then, require the package with `var cerberus = require('cerberus-node-client')`
 
+## QuickStart
+
+```
+var cerberus = require('cerberus-node-client')
+var AWS = require('aws-sdk')
+var client = cerberus({ aws: AWS hostUrl: YOUR_CERBERUS_HOST })
+client.get('app/YOURAPP/your/keypath').then(secrets => {
+  console.log(secrets) // { key1: value1, key2: value2 }
+})
+```
+
 ## Usage with the AWS SDK
 
 This library does not declare the [AWS Node SDK](https://github.com/aws/aws-sdk-js) as a dependency, but it is required to use. You must pass in the AWS SDK as a constructor parameter
@@ -82,6 +93,10 @@ This client should be compatible with node 0.12.x (this has not yet been tested,
 To use the promise API omit the callback parameter (always the last one), and ensure `global.Promise` supports constructing promises with `new Promise()`. Promises will be returned from all client methods in this case; otherwise, `undefined` will be returned.
 
 **KeyPaths** below are relative to the Cerberus root. This is shown as the `path` value when looking at a Safety Deposit Box (SDB). You must include the full path (including `app` or `shared`) not just the name of the SDB.
+
+> Note to new users: The key path is the path ***exactly*** as shown in the UI, it is ***not** `${keyPath}/${keyName}`. All of the keys/value paris will be returned from a `get` request as a normal JavaScript object. For example, in the image below `get('app/devportal-prod/config/keys')` would return `{ githubJenkins: 'someSecret' }. A request for `get('app/devportal-prod/config/keys/githubJenkins')` will return a 404, since that is not a valid path.
+
+![The key path](http://i.imgur.com/WeiWbxE.png)
 
 * `get(keyPath [, callback])` - Read the contents of the **keyPath**. Returns an object
 * `set(keyPath, data [, callback])` - Set the contents of the **keyPath**. Returns `data`
