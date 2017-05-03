@@ -44,7 +44,7 @@ var mockHttp = (action, handlerOrValue) => {
 
     var server = http.createServer(typeof handlerOrValue === 'function' ? handlerOrValue : defaultHandler)
     server.listen(testPort, () => {
-      Promise.resolve(action())
+      action()
         .catch(err => {
           // console.log('error handling http action', err, mockCalls)
           server.close()
@@ -234,7 +234,7 @@ test('If request returns an errors array treat it like an error in the post-getT
     })
 })
 
-test('If cerberus returns error response return error', t => {
+test('If cerberus returns error from auth response return error', t => {
   var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
 
   t.plan(1)
@@ -248,6 +248,48 @@ test('If cerberus returns error response return error', t => {
     .catch(error => {
       // t.comment(error)
       t.ok(/IAM role is not valid/.test(error && error.message), 'error from auth result')
+      t.end()
+    })
+})
+
+test('If cerberus returns error from key response return error', t => {
+  process.env.CERBERUS_TOKEN = 'testToken'
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'), { error_id: 'f887ba2a-d104-4323-93e0-d22304932f56', errors: [ { code: 3243, message: 'Key request failure' } ] })
+    .then(result => {
+      process.env.CERBERUS_TOKEN = undefined
+      console.log('test result', result)
+      t.fail()
+      t.end()
+    })
+    .catch(error => {
+      process.env.CERBERUS_TOKEN = undefined
+      console.log('error caught', error)
+      t.ok(/Key request failure/.test(error && error.message), 'key request raised promise error')
+      t.end()
+    })
+})
+
+test('Get key should work', t => {
+  process.env.CERBERUS_TOKEN = 'testToken'
+  var client = cerberus({ aws: aws, lambdaContext, hostUrl: cerberusHost })
+
+  t.plan(1)
+
+  mockHttp(() => client.get('test'), { data: { success: 'someKey' } })
+    .then(result => {
+      process.env.CERBERUS_TOKEN = undefined
+      t.same(result, { success: 'someKey' }, 'key returned')
+      t.end()
+    })
+    .catch(error => {
+      process.env.CERBERUS_TOKEN = undefined
+      console.log('error caught', error)
+      t.fail()
+      // t.ok(/IAM role is not valid/.test(error && error.message), 'error from auth result')
       t.end()
     })
 })
@@ -294,7 +336,7 @@ test('If cerberus returns empty response return error', t => {
       t.end()
     })
     .catch(error => {
-      // t.comment(error)
+      t.comment(error)
       t.ok(/cannot decrypt token/.test(error && error.message), 'error from auth result')
       t.end()
     })
