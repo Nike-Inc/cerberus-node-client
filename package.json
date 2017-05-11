@@ -26,17 +26,21 @@
     "index.js",
     "lib"
   ],
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "author": "Tim Kye",
   "license": "Apache-2.0",
   "standard": {
     "parser": "babel-eslint"
   },
   "dependencies": {
+    "aws4": "^1.6.0",
+    "co": "^4.6.0",
     "request-micro": "^1.2.1",
     "url-join": "^1.1.0"
   },
   "devDependencies": {
-    "aws-sdk": "^2.7.1",
     "babel-eslint": "^6.1.0",
     "blue-tape": "^0.2.0",
     "chokidar-cli": "^1.2.0",

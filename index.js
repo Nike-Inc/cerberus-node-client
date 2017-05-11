@@ -1,24 +1,18 @@
-var request = require('request-micro')
-var urlJoin = require('url-join')
-var linereader = require('./lib/linereader')
+const co = require('co')
+const request = require('request-micro')
+const urlJoin = require('url-join')
+const linereader = require('./lib/linereader')
+const kms = require('./lib/kms')
+const lambda = require('./lib/lambda')
 
 module.exports = cerberus
 
-var cerberusVersion = 'v1'
-var ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
-var ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
+const cerberusVersion = 'v1'
+const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
+const ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
 
 function log () { console.log.apply(console, ['cerberus-node'].concat(Array.prototype.slice.call(arguments))) }
 function noop () { }
-
-function shallowCopy (target, source) {
-  for (var key in source) {
-    if (source.hasOwnProperty(key)) {
-      target[key] = source[key]
-    }
-  }
-  return target
-}
 
 // Client Constructor
 function cerberus (options) {
@@ -26,34 +20,31 @@ function cerberus (options) {
     throw new Error('options parameter is required')
   }
   // Copy so we can safely mutate
-  var context = shallowCopy({}, options)
+  let context = Object.assign({}, options)
   context.log = context.debug ? log : noop
 
   // Override context with env variables
-  var envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
+  let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
   if (envToken) {
     context.log('environment variable token found', envToken)
     context.token = envToken
   }
 
-  var envHost = getEnvironmentVariable(process.env.CERBERUS_ADDR)
+  let envHost = getEnvironmentVariable(process.env.CERBERUS_ADDR)
   if (envHost) {
     context.log('environment variable host url found', envHost)
     context.hostUrl = envHost
   }
   // Validate context
-  if (!context.aws || typeof context.aws !== 'object') {
-    throw new Error('options.aws parameter is required')
-  }
   if (typeof context.hostUrl !== 'string') {
     throw new Error('options.hostUrl must be a URL string')
   }
 
-  var get = function (keyPath, cb) { return callCerberus('GET', context, keyPath, undefined, cb) }
-  var set = function (keyPath, data, cb) { return callCerberus('POST', context, keyPath, data, cb) }
-  var remove = function (keyPath, cb) { return callCerberus('DELETE', context, keyPath, undefined, cb) }
-  var list = function (keyPath, cb) { return callCerberus('LIST', context, keyPath, undefined, cb) }
-  var setLambdaContext = function (lambdaContext) { context.lambdaContext = lambdaContext }
+  let get = (keyPath, cb) => callCerberus(context, 'GET', keyPath, undefined, cb)
+  let set = (keyPath, data, cb) => callCerberus(context, 'POST', keyPath, data, cb)
+  let remove = (keyPath, cb) => callCerberus(context, 'DELETE', keyPath, undefined, cb)
+  let list = (keyPath, cb) => callCerberus(context, 'LIST', keyPath, undefined, cb)
+  let setLambdaContext = (lambdaContext) => { context.lambdaContext = lambdaContext }
 
   return {
     get: get,
@@ -66,44 +57,37 @@ function cerberus (options) {
   }
 }
 
-function callCerberus (type, context, keyPath, data, cb) {
-  if (cb === undefined) {
-    if (typeof global.Promise === 'function') {
-      context.log('promise path')
-      return new Promise(function (resolve, reject) {
-        callCerberus(type, context, keyPath, data, function (err, result) {
-          if (err) reject(err)
-          else resolve(result)
-        })
-      })
-    }
-    // Otherwise
-    throw new Error('No callback was supplied, and global.Promise is not a function. You must provide an async interface')
-  }
-  context.log('getting token')
-  getToken(context, function (err, authToken) {
-    if (err) return cb(err)
-    if (!authToken) return cb('Token is null')
-    var url = urlJoin(context.hostUrl, cerberusVersion, 'secret', keyPath)
-    context.log('token retrieved', authToken, keyPath, url)
-    request({
+function callCerberus (context, type, keyPath, data, cb) {
+  context.log(`Starting ${type} request for ${keyPath}`)
+  let action = co(function * () {
+    let token = yield getToken(context)
+    if (!token) throw new Error('unable to retrieve token')
+    let url = urlJoin(context.hostUrl, cerberusVersion, 'secret', keyPath)
+    context.log('token retrieved', token, keyPath, url)
+    let keyResponse = yield request({
       method: type === 'LIST' ? 'GET' : type,
       url: url + (type === 'LIST' ? '?list=true' : ''),
-      headers: { 'X-Vault-Token': authToken },
+      headers: { 'X-Vault-Token': token },
       body: data,
       json: true
-    }, function (err, res, result) {
-      if (err) return cb(err)
-      if (result && result.errors && result.errors.length > 0) return cb(result.errors[0])
-      context.log('key retrieved', res.statusCode.toString(), result)
-      if (res.statusCode && res.statusCode.toString()[0] !== '2') return cb(new Error('Key Request error, Status: ' + res.statusCode))
-
-      return cb(null, result && result.data)
     })
+    let keyResult = keyResponse.data
+    if (keyResult && keyResult.errors && keyResult.errors.length > 0) throw new Error(formatCerberusError(keyResult.errors))
+    context.log('key retrieved', keyResponse.statusCode.toString(), keyResult)
+    if (keyResponse.statusCode && keyResponse.statusCode.toString()[0] !== '2') throw new Error('Key Request error, Status: ' + keyResponse.statusCode)
+
+    return keyResult && keyResult.data
   })
+  if (cb) {
+    action
+      .then(result => cb(null, result))
+      .catch(err => cb(err))
+  } else {
+    return action
+  }
 }
 
-function getToken (context, cb) {
+const getToken = co.wrap(function * (context) {
   // tokenExpiresAt in secs, Date.now in ms
   if (context.tokenExpiresAt && (context.tokenExpiresAt <= (Date.now() / 1000))) {
     context.tokenExpiresAt = null
@@ -113,170 +97,112 @@ function getToken (context, cb) {
   // Already has token
   if (context.token) {
     context.log('returning stored token')
-    return cb(null, context.token)
+    return context.token
   }
 
-  // Default to Ec2 if lambdaContext is missing
-  var handler = context.lambdaContext ? getLambdaMetadata : getEc2Metadata
-  handler(context, function (err, metadata) {
-    if (err || !metadata) {
-      context.log('auth handler returned', err || metadata)
-      if (!context.prompt) return cb(err || 'No metadata returned from authentication handler')
-      else return getPromptToken(context, cb)
-    }
+  let token
+
+  if (context.prompt) {
+    token = yield getTokenFromPrompt(context)
+  } else {
+    let handler = context.lambdaContext ? getLambdaMetadata : getEc2Metadata
+    let metadata = yield handler(context)
+    if (!metadata) throw new Error('No metadata returned from authentication handler')
     context.log('handler metadata retrieved', metadata)
-    authenticate(context, metadata.accountId, metadata.roleName, metadata.region, cb)
-  })
-}
+    token = yield authenticateForToken(context, metadata.accountId, metadata.roleName, metadata.region)
+  }
 
-function setToken (context, token, cb) {
-  // Expire 60 seconds before lease is up, to account for latency
-  context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 60  // token TTL in secs, Date.now in ms
-  context.token = token['client_token']
-  cb(null, context.token)
-}
+  // Set token on context
+  if (token) {
+    // Expire 60 seconds before lease is up, to account for latency
+    context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 60  // token TTL in secs, Date.now in ms
+    context.token = token['client_token']
+    return context.token
+  }
+})
 
-function getPromptToken (context, cb) {
+const getTokenFromPrompt = co.wrap(function * (context) {
   if (!context.prompt) throw new Error('Tried to get prompt illegally')
   context.log('getting credentials from prompt')
-  linereader.readLine({ prompt: 'Nike Email: ' }, function (err, email) {
-    if (err) return cb(err)
-    linereader.readLine({ prompt: 'Password: ', replace: '*' }, function (pErr, password) {
-      if (pErr) return cb(pErr)
-      context.authorization = makeAuthHeader(email, password)
-      request({
-        method: 'GET',
-        url: urlJoin(context.hostUrl, 'v2/auth/user'),
-        headers: { 'authorization': context.authorization },
-        protocol: 'https',
-        json: true
-      }, function (err, authResponse) {
-        if (err) return cb(err)
-        if (authResponse.data && authResponse.data.errors) return cb(authResponse.data.errors)
-        if (authResponse.data.status === 'mfa_req') {
-          context.log('mfa required', authResponse.data)
-          linereader.readLine({ prompt: 'MultiFactor Auth for ' + authResponse.data['data']['devices'][0]['name'] + ': ' }, function (err, mfaResponse) {
-            if (err) return cb(err)
-            request.post({
-              url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
-              protocol: 'https',
-              json: true,
-              body: {
-                state_token: authResponse.data['data'].state_token,
-                device_id: authResponse.data['data']['devices'][0].id,
-                otp_token: mfaResponse
-              }
-            }, function (err, mfaResponse) {
-              if (err) return cb(err)
-              if (mfaResponse.data && mfaResponse.data.errors) return cb(mfaResponse.data.errors)
-              context.log('mfa response', mfaResponse.data)
-              setToken(context, mfaResponse.data['data']['client_token'], cb)
-            })
-          })
-        } else {
-          context.log('user token retrieved', authResponse.data)
-          setToken(context, authResponse.data['data']['client_token'], cb)
-        }
-      })
-    })
+  let email = yield linereader.readLine({ prompt: 'Nike Email: ' })
+  let password = yield linereader.readLine({ prompt: 'Password: ', replace: '*' })
+  context.authorization = makeAuthHeader(email, password)
+  let authResponse = yield request({
+    method: 'GET',
+    url: urlJoin(context.hostUrl, 'v2/auth/user'),
+    headers: { 'authorization': context.authorization },
+    protocol: 'https',
+    json: true
   })
-}
+  if (authResponse.data && authResponse.data.errors) throw new Error(formatCerberusError(authResponse.data.errors))
+  if (authResponse.data.status === 'mfa_req') {
+    context.log('mfa required', authResponse.data)
+    let mfaAnswer = yield linereader.readLine({ prompt: 'MultiFactor Auth for ' + authResponse.data['data']['devices'][0]['name'] + ': ' })
+    let mfaResponse = yield request.post({
+      url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
+      protocol: 'https',
+      json: true,
+      body: {
+        state_token: authResponse.data['data'].state_token,
+        device_id: authResponse.data['data']['devices'][0].id,
+        otp_token: mfaAnswer
+      }
+    })
+    if (mfaResponse.data && mfaResponse.data.errors) throw new Error(formatCerberusError(mfaResponse.data.errors))
+    context.log('mfa response', mfaResponse.data)
+    return mfaResponse.data['data']['client_token']
+  } else {
+    context.log('user token retrieved', authResponse.data)
+    return authResponse.data['data']['client_token']
+  }
+})
 
-function authenticate (context, accountId, roleName, region, cb) {
-  request.post({
+const authenticateForToken = co.wrap(function * (context, accountId, roleName, region) {
+  let authResponse = yield request.post({
     url: urlJoin(context.hostUrl, cerberusVersion, '/auth/iam-role'),
     body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
     json: true
-  }, function (err, res, authResult) {
-    if (err) return cb(err)
-    if (!authResult) return cb(new Error('cerberus returned empty authentication result'))
-    context.log('auth result', authResult)
-    decryptAuthResult(context, region, authResult, function (err, token) {
-      if (err) return cb(err)
-      setToken(context, token, cb)
-    })
   })
-}
-
-function decryptAuthResult (context, region, authResult, cb) {
+  let authResult = authResponse.data
+  if (!authResult) throw new Error('cerberus returned empty authentication result')
+  context.log('auth result', authResult)
   context.log('decrypting', authResult)
-  if (authResult.errors) {
-    var message = authResult.errors instanceof Array
-      ? authResult.errors.map(e => e.message).join(', ')
-      : JSON.stringify(authResult.errors)
-    return cb(new Error(`Cerberus Authentication error: ${message}`))
-  }
-  if (!authResult['auth_data']) {
-    return cb(new Error('cannot decrypt token, auth_data is missing'))
-  }
-  var text = new Buffer(authResult['auth_data'], 'base64')
-  // context.log('config', context.aws.config)
-  // context.log('aws', context.aws)
-  var kms = new context.aws.KMS({ apiVersion: '2014-11-01', region: context.aws.config.region || region })
+  if (authResult.errors) throw new Error(`Cerberus Authentication error: ${formatCerberusError(authResult.errors)}`)
+  if (!authResult['auth_data']) throw new Error('cannot decrypt token, auth_data is missing')
+  let text = new Buffer(authResult['auth_data'], 'base64')
+  let token = yield kms.decrypt(text, { region: region, context: context })
+  context.log('decrypt result', token)
+  return token
+})
 
-  kms.decrypt({ CiphertextBlob: text }, function (err, kmsResult) {
-    context.log('kms result', kmsResult)
-    if (err) {
-      return cb(!isKmsAccessError(err)
-        ? err
-        : new Error('You do not have access to the KMS key required for authentication. The most likely cause is that your IAM role does not have the KMS Decrypt action. You will need to add it to your role.'))
-    }
-    var token
+const getEc2Metadata = co.wrap(function * (context) {
+  let metadata = { }
+  let metadataResponse = yield request({ url: ec2MetadataUrl, json: true })
+  let data = metadataResponse.data
+  if (!data || data.Code !== 'Success') throw new Error(data)
+  context.log('ec2 metadata', data)
 
-    try {
-      token = JSON.parse(new Buffer(kmsResult.Plaintext).toString())
-    } catch (e) {
-      cb(new Error('Error parsing KMS decrypt Result. ' + e.message))
-      return
-    }
-    context.log('decrypt result', token)
-    cb(null, token)
-  })
-}
+  let arn = data.InstanceProfileArn.split(':')
+  metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
+  metadata.accountId = arn[4]
 
-function isKmsAccessError (error) {
-  return error.message && error.message.indexOf('The ciphertext references a key that either does not exist or you do not have access to') !== -1
-}
+  let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
+  context.log('ec2 instance metadata', instanceResponse.data)
+  metadata.region = instanceResponse.data.region
+  context.log('metadata', metadata)
+  return metadata
+})
 
-function getEc2Metadata (context, cb) {
-  var metadata = { }
+const getLambdaMetadata = co.wrap(function * (context) {
+  let arn = context.lambdaContext.invokedFunctionArn.split(':')
 
-  request({ url: ec2MetadataUrl, json: true }, function (err, result, data) {
-    if (err) return cb(err)
-    if (!data || data.Code !== 'Success') return cb(data)
-    context.log(data)
+  let metadata = { region: arn[3], accountId: arn[4] }
+  let lambdaMetadata = yield lambda.getFunctionConfiguration({ FunctionName: arn[6], Qualifier: arn[7] })
 
-    var arn = data.InstanceProfileArn.split(':')
-    metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
-    metadata.accountId = arn[4]
-
-    request({ url: ec2InstanceDataUrl, json: true }, function (err, result, data) {
-      if (err) return cb(err)
-      metadata.region = data.region
-      context.log('metadata', metadata)
-      cb(null, metadata)
-    })
-  })
-}
-
-function getLambdaMetadata (context, cb) {
-  var lambda = new context.aws.Lambda({ apiVersion: '2015-03-31' })
-  var arn = context.lambdaContext.invokedFunctionArn.split(':')
-
-  var metadata = { region: arn[3], accountId: arn[4] }
-  var params = { FunctionName: arn[6], Qualifier: arn[7] }
-
-  lambda.getFunctionConfiguration(params, function (err, data) {
-    if (err) {
-      context.log('error getting metadata', err, err.stack)
-      return cb(err)
-    }
-
-    metadata.roleName = data.Role.split('/')[1]
-    context.log('retrieved metadata values', metadata)
-    cb(null, metadata)
-  })
-}
+  metadata.roleName = lambdaMetadata.Role.split('/')[1]
+  context.log('retrieved metadata values', metadata)
+  return metadata
+})
 
 function getEnvironmentVariable (value) {
   return value && value !== 'undefined' && value !== undefined && value !== null ? value : undefined
@@ -284,4 +210,10 @@ function getEnvironmentVariable (value) {
 
 function makeAuthHeader (username, password) {
   return 'Basic ' + new Buffer(username + ':' + password).toString('base64')
+}
+
+const formatCerberusError = (errors) => {
+  return errors instanceof Array
+    ? errors.map(e => e.message).join(', ')
+    : JSON.stringify(errors)
 }
