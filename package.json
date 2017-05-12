@@ -1,6 +1,6 @@
 {
   "name": "cerberus-node-client",
-  "version": "0.3.3",
+  "version": "1.0.0-beta.1",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
