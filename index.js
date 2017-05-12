@@ -62,8 +62,10 @@ function callCerberus (context, type, keyPath, data, cb) {
   let action = co(function * () {
     let token = yield getToken(context)
     if (!token) throw new Error('unable to retrieve token')
+
     let url = urlJoin(context.hostUrl, cerberusVersion, 'secret', keyPath)
     context.log('token retrieved', token, keyPath, url)
+
     let keyResponse = yield request({
       method: type === 'LIST' ? 'GET' : type,
       url: url + (type === 'LIST' ? '?list=true' : ''),
@@ -71,8 +73,10 @@ function callCerberus (context, type, keyPath, data, cb) {
       body: data,
       json: true
     })
+
     let keyResult = keyResponse.data
     if (keyResult && keyResult.errors && keyResult.errors.length > 0) throw new Error(formatCerberusError(keyResult.errors))
+
     context.log('key retrieved', keyResponse.statusCode.toString(), keyResult)
     if (keyResponse.statusCode && keyResponse.statusCode.toString()[0] !== '2') throw new Error('Key Request error, Status: ' + keyResponse.statusCode)
 
@@ -101,7 +105,6 @@ const getToken = co.wrap(function * (context) {
   }
 
   let token
-
   if (context.prompt) {
     token = yield getTokenFromPrompt(context)
   } else {
@@ -109,7 +112,7 @@ const getToken = co.wrap(function * (context) {
     let metadata = yield handler(context)
     if (!metadata) throw new Error('No metadata returned from authentication handler')
     context.log('handler metadata retrieved', metadata)
-    token = yield authenticateForToken(context, metadata.accountId, metadata.roleName, metadata.region)
+    token = yield authenticateWithIamRole(context, metadata.accountId, metadata.roleName, metadata.region)
   }
 
   // Set token on context
@@ -157,7 +160,7 @@ const getTokenFromPrompt = co.wrap(function * (context) {
   }
 })
 
-const authenticateForToken = co.wrap(function * (context, accountId, roleName, region) {
+const authenticateWithIamRole = co.wrap(function * (context, accountId, roleName, region) {
   let authResponse = yield request.post({
     url: urlJoin(context.hostUrl, cerberusVersion, '/auth/iam-role'),
     body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
@@ -176,6 +179,7 @@ const authenticateForToken = co.wrap(function * (context, accountId, roleName, r
 })
 
 const getEc2Metadata = co.wrap(function * (context) {
+  context.log('getting ec2 metadata')
   let metadata = { }
   let metadataResponse = yield request({ url: ec2MetadataUrl, json: true })
   let data = metadataResponse.data
@@ -189,18 +193,21 @@ const getEc2Metadata = co.wrap(function * (context) {
   let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
   context.log('ec2 instance metadata', instanceResponse.data)
   metadata.region = instanceResponse.data.region
-  context.log('metadata', metadata)
   return metadata
 })
 
 const getLambdaMetadata = co.wrap(function * (context) {
+  context.log('getting lambda metadata')
   let arn = context.lambdaContext.invokedFunctionArn.split(':')
 
   let metadata = { region: arn[3], accountId: arn[4] }
-  let lambdaMetadata = yield lambda.getFunctionConfiguration({ FunctionName: arn[6], Qualifier: arn[7] })
+  let lambdaMetadata = yield lambda.getFunctionConfiguration({ FunctionName: arn[6], Qualifier: arn[7], region: metadata.region })
+    .catch(error => {
+      context.log('error getting lambda conf', error)
+      throw error
+    })
 
   metadata.roleName = lambdaMetadata.Role.split('/')[1]
-  context.log('retrieved metadata values', metadata)
   return metadata
 })
 
@@ -214,6 +221,6 @@ function makeAuthHeader (username, password) {
 
 const formatCerberusError = (errors) => {
   return errors instanceof Array
-    ? errors.map(e => e.message).join(', ')
+    ? errors.map(e => e.message || e).join(', ')
     : JSON.stringify(errors)
 }
