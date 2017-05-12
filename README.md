@@ -16,30 +16,11 @@ Then, require the package with `var cerberus = require('cerberus-node-client')`
 
 ```
 var cerberus = require('cerberus-node-client')
-var AWS = require('aws-sdk')
-var client = cerberus({ aws: AWS hostUrl: YOUR_CERBERUS_HOST })
+var client = cerberus({ hostUrl: YOUR_CERBERUS_HOST })
 client.get('app/YOURAPP/your/keypath').then(secrets => {
   console.log(secrets) // { key1: value1, key2: value2 }
 })
 ```
-
-## Usage with the AWS SDK
-
-This library does not declare the [AWS Node SDK](https://github.com/aws/aws-sdk-js) as a dependency, but it is required to use. You must pass in the AWS SDK as a constructor parameter
-
-```javascript
-var AWS = require('aws-sdk')
-
-var client = cerberus({
-    aws: AWS,
-    hostUrl: YOUR_CERBERUS_HOST,
-    lambdaContext: context
-  })
-```
-
-This is done to make packaging for Lambdas possible without bundling the AWS SDK, since Lambdas have it provided for them automatically. This helps reduce the size of Lambda's, which are billed partially on their size, and which have a 75GB limit per account.
-
-It also ensures that locally or globally scoped AWS configurations can be easily used by the cerberus client.
 
 ## Authentication
 
@@ -59,12 +40,8 @@ Cerberus will attempt to authenticate one its first call. The authentication res
 
 ```javascript
 var cerberus = require('cerberus-node-client')
-var AWS = require('aws-sdk')
 
 var client = cerberus({
-    // REQUIRED -  The AWS SDK
-    aws: AWS,
-
     // string, The cerberus URL to use.
     // OVERRIDDEN by process.env.CERBERUS_ADDR
     // Either this or the env variable is required
@@ -112,12 +89,11 @@ To use the promise API omit the callback parameter (always the last one), and en
 Using Cerberus in your app will be easier if you create a wrapper module that handles construction and exports the constructed client. A standard wrappper would look like this
 
 ```javascript
-var AWS = require('aws-sdk')
 var cerberus = require('cerberus-node-client')
 var config = require('./config') // you will need to provide this
 var urlJoin = require('url-join')
 
-var client = cerberus({ aws: AWS, hostUrl: config.cerberus.host })
+var client = cerberus({ hostUrl: config.cerberus.host })
 // Simplify keyPath creation
 client.makePath = urlJoin.bind(urlJoin, config.cerberus.name)
 

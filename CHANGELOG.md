@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [[UNRELEASED]]
+## Changed
+- Required node version to v4.x
+- Using promises internally
+## Removed
+- AWS SDK dependency
+
 ## [[0.3.3] - 2017-05-08]
 ### Changed
 - Increase token expiration padding from 10 to 60 seconds
