@@ -262,7 +262,6 @@ test('Apps put', spec => {
         t.ok(/Key request failure/.test(error && error.message), 'key request raised promise error')
       })
       .then(teardown, teardownError)
-
   })
 
   spec.test('Get key should work', t => {
@@ -355,11 +354,4 @@ test('Apps put', spec => {
       })
     })
   })
-
-
-
 })
-
-
-
-

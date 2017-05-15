@@ -71,7 +71,7 @@ To use the promise API omit the callback parameter (always the last one), and en
 
 **KeyPaths** below are relative to the Cerberus root. This is shown as the `path` value when looking at a Safety Deposit Box (SDB). You must include the full path (including `app` or `shared`) not just the name of the SDB.
 
-> Note to new users: The key path is the path ***exactly*** as shown in the UI, it is ***not** `${keyPath}/${keyName}`. All of the keys/value paris will be returned from a `get` request as a normal JavaScript object. For example, in the image below `get('app/devportal-prod/config/keys')` would return `{ githubJenkins: 'someSecret' }. A request for `get('app/devportal-prod/config/keys/githubJenkins')` will return a 404, since that is not a valid path.
+> Note to new users: The key path is the path ***exactly*** as shown in the UI, it is ***not*** `${keyPath}/${keyName}`. All of the keys/value paris will be returned from a `get` request as a normal JavaScript object. For example, in the image below `get('app/devportal-prod/config/keys')` would return `{ githubJenkins: 'someSecret' }`. A request for `get('app/devportal-prod/config/keys/githubJenkins')` will return a 404, since that is not a valid path.
 
 ![The key path](http://i.imgur.com/WeiWbxE.png)
 
