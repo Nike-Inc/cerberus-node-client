@@ -14,6 +14,8 @@ let cerberus = require('../index')
 let testPort = process.env.TEST_PORT || 3032
 let cerberusHost = 'http://localhost:' + testPort
 
+var log = (...args) => console.log(...args.map(a => require('util').inspect(a, { colors: true, depth: null }))) // eslint-disable-line
+
 let mockCalls = []
 function trimRequest (req) {
   return {
@@ -274,6 +276,27 @@ test('Apps put', spec => {
       .then(result => {
         process.env.CERBERUS_TOKEN = undefined
         t.same(result, { success: 'someKey' }, 'key returned')
+      })
+      .catch(error => {
+        process.env.CERBERUS_TOKEN = undefined
+        console.log('error caught', error)
+        t.fail()
+        // t.ok(/IAM role is not valid/.test(error && error.message), 'error from auth result')
+      })
+      .then(teardown, teardownError)
+  })
+
+  spec.test('should send package version', t => {
+    process.env.CERBERUS_TOKEN = 'testToken'
+    let packageData = require('../package.json')
+    let client = cerberus({ lambdaContext, hostUrl: cerberusHost })
+
+    t.plan(1)
+
+    return mockCerberusHost(() => client.get('test'), { data: { success: 'someKey' } })
+      .then(result => {
+        process.env.CERBERUS_TOKEN = undefined
+        t.equal(mockCalls[0].req.headers['x-cerberus-client'], `CerberusNodeClient/${packageData.version}`, 'version is sent to cerbeurs')
       })
       .catch(error => {
         process.env.CERBERUS_TOKEN = undefined

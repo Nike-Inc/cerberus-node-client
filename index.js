@@ -4,8 +4,13 @@ const urlJoin = require('url-join')
 const linereader = require('./lib/linereader')
 const kms = require('./lib/kms')
 const lambda = require('./lib/lambda')
+const packageData = require('./package.json')
 
 module.exports = cerberus
+
+const globalHeaders = {
+  'X-Cerberus-Client': `CerberusNodeClient/${packageData.version}`
+}
 
 const cerberusVersion = 'v1'
 const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
@@ -69,7 +74,7 @@ function callCerberus (context, type, keyPath, data, cb) {
     let keyResponse = yield request({
       method: type === 'LIST' ? 'GET' : type,
       url: url + (type === 'LIST' ? '?list=true' : ''),
-      headers: { 'X-Vault-Token': token },
+      headers: Object.assign({}, globalHeaders, { 'X-Vault-Token': token }),
       body: data,
       json: true
     })
@@ -144,6 +149,7 @@ const getTokenFromPrompt = co.wrap(function * (context) {
     let mfaResponse = yield request.post({
       url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
       protocol: 'https',
+      headers: globalHeaders,
       json: true,
       body: {
         state_token: authResponse.data['data'].state_token,
@@ -163,6 +169,7 @@ const getTokenFromPrompt = co.wrap(function * (context) {
 const authenticateWithIamRole = co.wrap(function * (context, accountId, roleName, region) {
   let authResponse = yield request.post({
     url: urlJoin(context.hostUrl, cerberusVersion, '/auth/iam-role'),
+    headers: globalHeaders,
     body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
     json: true
   })
