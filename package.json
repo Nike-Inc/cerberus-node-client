@@ -4,13 +4,13 @@
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
+    "test": "npm run style && npm run test:coverage && npm run report",
     "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
     "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
     "test:unit": "blue-tape test/**/**.spec.js | ./node_modules/.bin/tap-spec",
-    "test:coverage": "covert -c test/*.js",
-    "test:coverage:error-only": "covert -c -q test/*.js",
+    "test:coverage": "nyc --check-coverage --lines 60 npm run test:unit",
+    "report": "nyc report --reporter=html",
     "test:lineread": "node test/lineread.manual.js",
-    "test": "npm run style && npm run test:unit",
     "test:watch": "npm run test:unit -s & chokidar 'lib/**/*.js' 'index.js' 'test/**/*.spec.js' --polling -c \"npm run test:unit -s\""
   },
   "repository": {
@@ -44,7 +44,7 @@
     "babel-eslint": "^6.1.0",
     "blue-tape": "^0.2.0",
     "chokidar-cli": "^1.2.0",
-    "covert": "^1.1.0",
+    "nyc": "^11.0.2",
     "sinon": "^2.2.0",
     "snazzy": "^4.0.0",
     "standard": "^7.1.2",

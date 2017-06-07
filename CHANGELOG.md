@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [1.1.0] - 2017-06-07
 ## Added
 Cerberus client header
+## Changed
+Coverage tool to Istanbul
 
 ## [1.0.0] - 2017-05-19
 ## Changed
