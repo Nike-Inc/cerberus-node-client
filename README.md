@@ -90,12 +90,7 @@ Using Cerberus in your app will be easier if you create a wrapper module that ha
 
 ```javascript
 var cerberus = require('cerberus-node-client')
-var config = require('./config') // you will need to provide this
-var urlJoin = require('url-join')
-
-var client = cerberus({ hostUrl: config.cerberus.host })
-// Simplify keyPath creation
-client.makePath = urlJoin.bind(urlJoin, config.cerberus.name)
+var client = cerberus({ hostUrl: process.env.CERBERUS_HOST })
 
 module.exports = client
 ```
