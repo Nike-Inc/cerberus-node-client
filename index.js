@@ -14,6 +14,7 @@ const globalHeaders = {
 
 const cerberusVersion = 'v1'
 const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
+const ec2RoleUrl = 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'
 const ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
 
 function log () { console.log.apply(console, ['cerberus-node'].concat(Array.prototype.slice.call(arguments))) }
@@ -192,10 +193,12 @@ const getEc2Metadata = co.wrap(function * (context) {
   let data = metadataResponse.data
   if (!data || data.Code !== 'Success') throw new Error(data)
   context.log('ec2 metadata', data)
-
   let arn = data.InstanceProfileArn.split(':')
-  metadata.roleName = arn[5].substring(arn[5].indexOf('/') + 1)
   metadata.accountId = arn[4]
+
+  let roleResponse = yield request({ url: ec2RoleUrl })
+  context.log('ec2 role', roleResponse.data)
+  metadata.roleName = roleResponse.data
 
   let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
   context.log('ec2 instance metadata', instanceResponse.data)
