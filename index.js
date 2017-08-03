@@ -208,8 +208,9 @@ const getEc2Metadata = co.wrap(function * (context) {
   context.log('credentials recieved')
 
   context.credentials = {
-    accessKeyId: credentialsResponse.AccessKeyId,
-    secretAccessKey: credentialsResponse.SecretAccessKey
+    accessKeyId: credentialsResponse.data.AccessKeyId,
+    secretAccessKey: credentialsResponse.data.SecretAccessKey,
+    sessionToken: credentialsResponse.data.Token
   }
 
   let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
