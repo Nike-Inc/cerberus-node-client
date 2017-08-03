@@ -199,8 +199,8 @@ const getEc2Metadata = co.wrap(function * (context) {
   metadata.accountId = arn[4]
 
   let roleResponse = yield request({ url: ec2RoleUrl })
-  context.log('ec2 role', roleResponse.data)
-  metadata.roleName = roleResponse.data
+  context.log('ec2 role', roleResponse.data.toString())
+  metadata.roleName = roleResponse.data.toString()
 
   let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
   context.log('ec2 instance metadata', instanceResponse.data)
