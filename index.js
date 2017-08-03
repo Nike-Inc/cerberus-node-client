@@ -197,9 +197,6 @@ const getEc2Metadata = co.wrap(function * (context) {
   let arn = data.InstanceProfileArn.split(':')
   metadata.accountId = arn[4]
 
-  // We need to load the credentials from ec2RoleUrl as well
-  // and pass those to aws4
-
   let roleResponse = yield request({ url: ec2RoleUrl })
   context.log('ec2 role', roleResponse.data.toString())
   metadata.roleName = roleResponse.data.toString()
