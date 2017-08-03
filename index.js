@@ -1,3 +1,5 @@
+'use strict'
+
 const co = require('co')
 const request = require('request-micro')
 const urlJoin = require('url-join')
