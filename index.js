@@ -182,8 +182,7 @@ const authenticateWithIamRole = co.wrap(function * (context, accountId, roleName
   context.log('decrypting', authResult)
   if (authResult.errors) throw new Error(`Cerberus Authentication error: ${formatCerberusError(authResult.errors)}`)
   if (!authResult['auth_data']) throw new Error('cannot decrypt token, auth_data is missing')
-  let text = new Buffer(authResult['auth_data'], 'base64')
-  let token = yield kms.decrypt(text, { region: region, context: context })
+  let token = yield kms.decrypt(authResult['auth_data'], { region: region, context: context, credentials: context.credentials })
   context.log('decrypt result', token)
   return token
 })
@@ -198,9 +197,20 @@ const getEc2Metadata = co.wrap(function * (context) {
   let arn = data.InstanceProfileArn.split(':')
   metadata.accountId = arn[4]
 
+  // We need to load the credentials from ec2RoleUrl as well
+  // and pass those to aws4
+
   let roleResponse = yield request({ url: ec2RoleUrl })
-  context.log('ec2 role', roleResponse.data.toString('utf8'))
-  metadata.roleName = roleResponse.data.toString('utf8')
+  context.log('ec2 role', roleResponse.data.toString())
+  metadata.roleName = roleResponse.data.toString()
+
+  let credentialsResponse = yield request({ url: ec2RoleUrl + metadata.roleName, json: true })
+  context.log('credentials recieved')
+
+  context.credentials = {
+    accessKeyId: credentialsResponse.AccessKeyId,
+    secretAccessKey: credentialsResponse.SecretAccessKey
+  }
 
   let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
   context.log('ec2 instance metadata', instanceResponse.data)
