@@ -120,7 +120,8 @@ const getToken = co.wrap(function * (context) {
     let metadata = yield handler(context)
     if (!metadata) throw new Error('No metadata returned from authentication handler')
     context.log('handler metadata retrieved', metadata)
-    token = yield authenticateWithIamRole(context, metadata.accountId, metadata.roleName, metadata.region)
+    var iamPrincipalArn = 'arn:aws:iam::' + metadata.accountId + ':role/' + metadata.roleName
+    token = yield authenticateWithIamRole(context, iamPrincipalArn, metadata.region)
   }
 
   // Set token on context
@@ -169,11 +170,11 @@ const getTokenFromPrompt = co.wrap(function * (context) {
   }
 })
 
-const authenticateWithIamRole = co.wrap(function * (context, accountId, roleName, region) {
+const authenticateWithIamRole = co.wrap(function * (context, iamPrincipalArn, region) {
   let authResponse = yield request.post({
-    url: urlJoin(context.hostUrl, cerberusVersion, '/auth/iam-role'),
+    url: urlJoin(context.hostUrl, 'v2/auth/iam-principal'),
     headers: globalHeaders,
-    body: { 'account_id': accountId, 'role_name': roleName, 'region': region },
+    body: { iam_principal_arn: iamPrincipalArn, 'region': region },
     json: true
   })
   let authResult = authResponse.data

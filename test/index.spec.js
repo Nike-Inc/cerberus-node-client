@@ -316,7 +316,7 @@ test('Apps put', spec => {
       res.setHeader('Content-Type', 'application/json')
       let result
       mockCalls.push({req: trimRequest(req), result})
-      if (req.url === '/v1/auth/iam-role') {
+      if (req.url === '/v2/auth/iam-principal') {
         result = defaultCerberusResponse
       } else {
         result = { errors: [] }
