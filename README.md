@@ -27,6 +27,7 @@ client.get('app/YOURAPP/your/keypath').then(secrets => {
 The cerberus client supports four different configuration modes.
 
 * Lambda Context - Pass in the `context` from your Lambda Handler `handler(event, context)` as the `lambdaContext` parameter.
+  * IAM Role - You will need to apply the AWS Managed Policy `AWSLambdaReadOnlyAccess` to the IAM Role your lambda is running in.
 * EC2 - This is the default mode, it will be used if the other two are not present.
 * Environment Variables - This is useful for running locally without changing out code, since developer machines cannot posses the IAM roles necessary to decrypt Cerberus authentication responses.
   * `CERBERUS_TOKEN` - This environment variable will skip token retrival and just use the provided token to talk to cerberus
