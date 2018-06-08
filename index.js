@@ -197,9 +197,9 @@ const getEcsMetadata = co.wrap(function * (context) {
   let metadataResponse = yield request({ url: ecsMetadataUrl, json: true })
   context.log(metadataResponse)
   let data = metadataResponse.data
-  if (!data || data.Code !== 'Success') throw new Error(data)
-  context.log('ecs metadata', data)
-  let arn = data.InstanceProfileArn.split(':')
+  if (!data) throw new Error(data)
+  context.log('ecs data', data)
+  let arn = data.TaskARN.split(':')
   return {
     accountId: arn[4],
     roleName: context.ecsTaskRoleName,
