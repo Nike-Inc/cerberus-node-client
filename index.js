@@ -205,7 +205,6 @@ const authenticateWithIamRole = co.wrap(function * (context, iamPrincipalArn, re
 const getEcsMetadata = co.wrap(function * (context) {
   context.log('getting ecs metadata')
   let metadataResponse = yield request({ url: ecsMetadataUrl, json: true })
-  context.log(metadataResponse)
   let data = metadataResponse.data
   if (!data) throw new Error(data)
   context.log('ecs data', data)
