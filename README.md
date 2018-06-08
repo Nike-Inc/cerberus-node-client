@@ -32,6 +32,7 @@ The cerberus client supports five different configuration modes.
 * Environment Variables - This is useful for running locally without changing out code, since developer machines cannot posses the IAM roles necessary to decrypt Cerberus authentication responses.
   * `CERBERUS_TOKEN` - This environment variable will skip token retrival and just use the provided token to talk to cerberus
 * CLI Prompt - This method will run if `prompt: true` is passed to the client constructor, after all other methods fail, and will prompt on the command line for developer credentials. This should only be used in testing.
+* Assume Role - If you'd like to test IAM authentication locally, you can to pass `region` and `assumeRoleArn` into the client constructor.
 
 These configuration modes determine how the client will authenticate with Cerberus.
 

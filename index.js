@@ -6,6 +6,7 @@ const urlJoin = require('url-join')
 const linereader = require('./lib/linereader')
 const kms = require('./lib/kms')
 const lambda = require('./lib/lambda')
+const sts = require('./lib/sts')
 const packageData = require('./package.json')
 
 module.exports = cerberus
@@ -116,6 +117,15 @@ const getToken = co.wrap(function * (context) {
   let token
   if (context.prompt) {
     token = yield getTokenFromPrompt(context)
+  } else if (context.assumeRoleArn && context.region) {
+    let assumeRoleResponse = yield sts.assumeRole({ assumeRoleArn: context.assumeRoleArn })
+    let assumeRoleCredentials = assumeRoleResponse.AssumeRoleResponse.AssumeRoleResult.Credentials
+    context.credentials = {
+      accessKeyId: assumeRoleCredentials.AccessKeyId,
+      secretAccessKey: assumeRoleCredentials.SecretAccessKey,
+      sessionToken: assumeRoleCredentials.SessionToken
+    }
+    token = yield authenticateWithIamRole(context, context.assumeRoleArn, context.region)
   } else {
     let handler = getEc2Metadata
     if (context.lambdaContext) handler = getLambdaMetadata
@@ -222,7 +232,7 @@ const getEc2Metadata = co.wrap(function * (context) {
   metadata.roleName = roleResponse.data.toString()
 
   let credentialsResponse = yield request({ url: ec2RoleUrl + metadata.roleName, json: true })
-  context.log('credentials recieved')
+  context.log('credentials received')
 
   context.credentials = {
     accessKeyId: credentialsResponse.data.AccessKeyId,

@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.4.0] - 2018-06-01
-## Changed
+<<<<<<< HEAD
+## [1.5.0] - 2018-06-08
+## Added
 - AWS ECS support
+
+## [1.4.0] - 2018-06-04
+## Added
+- Authentication with assume role
 
 ## [1.3.0] - 2017-10-18
 ## Changed
