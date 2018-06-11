@@ -19,6 +19,7 @@ const cerberusVersion = 'v1'
 const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
 const ec2RoleUrl = 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'
 const ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
+const ecsMetadataUrl = 'http://169.254.170.2/v2/metadata'
 
 function log () { console.log.apply(console, ['cerberus-node'].concat(Array.prototype.slice.call(arguments))) }
 function noop () { }
@@ -126,7 +127,10 @@ const getToken = co.wrap(function * (context) {
     }
     token = yield authenticateWithIamRole(context, context.assumeRoleArn, context.region)
   } else {
-    let handler = context.lambdaContext ? getLambdaMetadata : getEc2Metadata
+    let handler = getEc2Metadata
+    if (context.lambdaContext) handler = getLambdaMetadata
+    if (context.ecsTaskRoleName) handler = getEcsMetadata
+
     let metadata = yield handler(context)
     if (!metadata) throw new Error('No metadata returned from authentication handler')
     context.log('handler metadata retrieved', metadata)
@@ -196,6 +200,20 @@ const authenticateWithIamRole = co.wrap(function * (context, iamPrincipalArn, re
   let token = yield kms.decrypt(authResult['auth_data'], { region: region, context: context, credentials: context.credentials })
   context.log('decrypt result', token)
   return token
+})
+
+const getEcsMetadata = co.wrap(function * (context) {
+  context.log('getting ecs metadata')
+  let metadataResponse = yield request({ url: ecsMetadataUrl, json: true })
+  let data = metadataResponse.data
+  if (!data) throw new Error(data)
+  context.log('ecs data', data)
+  let arn = data.TaskARN.split(':')
+  return {
+    accountId: arn[4],
+    roleName: context.ecsTaskRoleName,
+    region: arn[3]
+  }
 })
 
 const getEc2Metadata = co.wrap(function * (context) {
