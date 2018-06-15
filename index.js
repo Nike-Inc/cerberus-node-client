@@ -19,7 +19,6 @@ const cerberusVersion = 'v1'
 const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
 const ec2RoleUrl = 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'
 const ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
-const ecsMetadataUrl = 'http://169.254.170.2/v2/metadata'
 
 function log () { console.log.apply(console, ['cerberus-node'].concat(Array.prototype.slice.call(arguments))) }
 function noop () { }
@@ -32,6 +31,9 @@ function cerberus (options) {
   // Copy so we can safely mutate
   let context = Object.assign({}, options)
   context.log = context.debug ? log : noop
+
+  context.ecsMetadataUrl = options.ecsMetadataUrl ||
+    `http://169.254.170.2${process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI}`
 
   // Override context with env variables
   let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
@@ -129,7 +131,9 @@ const getToken = co.wrap(function * (context) {
   } else {
     let handler = getEc2Metadata
     if (context.lambdaContext) handler = getLambdaMetadata
-    if (context.ecsTaskRoleName) handler = getEcsMetadata
+    else if (process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI) {
+      handler = getEcsMetadata
+    }
 
     let metadata = yield handler(context)
     if (!metadata) throw new Error('No metadata returned from authentication handler')
@@ -204,15 +208,24 @@ const authenticateWithIamRole = co.wrap(function * (context, iamPrincipalArn, re
 
 const getEcsMetadata = co.wrap(function * (context) {
   context.log('getting ecs metadata')
-  let metadataResponse = yield request({ url: ecsMetadataUrl, json: true })
+  let metadataResponse = yield request({ url: context.ecsMetadataUrl, json: true })
+
   let data = metadataResponse.data
   if (!data) throw new Error(data)
-  context.log('ecs data', data)
-  let arn = data.TaskARN.split(':')
+
+  context.log('got ecs metadata', data)
+  context.credentials = {
+    accessKeyId: data.AccessKeyId,
+    secretAccessKey: data.SecretAccessKey,
+    sessionToken: data.Token
+  }
+
+  let arn = data.RoleArn.split(':')
+  let arnRolePath = data.RoleArn.split('/')
   return {
     accountId: arn[4],
-    roleName: context.ecsTaskRoleName,
-    region: arn[3]
+    roleName: arnRolePath[arnRolePath.length - 1],
+    region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || ''
   }
 })
 

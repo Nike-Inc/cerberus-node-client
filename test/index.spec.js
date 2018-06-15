@@ -177,6 +177,35 @@ test('Apps put', spec => {
       .then(teardown, teardownError)
   })
 
+  spec.test('Uses ECS metadata endpoint when detected', (t) => {
+    process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = 'foo/bar'
+
+    let client = cerberus({ hostUrl: cerberusHost, debug: true, ecsMetadataUrl: `${cerberusHost}/v2/iam/metadata` })
+    setup()
+    t.plan(1)
+
+    let metadataCalled = false
+
+    const handler = (req, res) => {
+      if (req.url.indexOf('v2/iam/metadata') !== -1) {
+        metadataCalled = true
+        res.end(JSON.stringify({
+          RoleArn: 'arn:aws:iam::123456789:role/BrowseServiceRole',
+          AccessKeyId: 'abc123',
+          SecretAccessKey: 'def456',
+          SessionToken: 't28038'
+        }))
+      } else {
+        res.end(JSON.stringify(defaultCerberusResponse))
+      }
+    }
+    return mockCerberusHost(() => client.get('test'), handler)
+    .then(() => {
+      t.true(metadataCalled, 'metadata endpoint not called')
+    })
+    .then(teardown, teardownError)
+  })
+
   spec.test('Prompt flow prompts if config option is set and other methods fail', t => {
     process.env.CERBERUS_TOKEN = undefined
     t.plan(2) // the 2nd assertion is present to ensure the http server closes before the test completes
