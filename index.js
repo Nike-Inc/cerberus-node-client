@@ -213,7 +213,7 @@ const getEcsMetadata = co.wrap(function * (context) {
   let data = metadataResponse.data
   if (!data) throw new Error(data)
 
-  context.log('got ecs metadata', data)
+  context.log('got ecs metadata')
   context.credentials = {
     accessKeyId: data.AccessKeyId,
     secretAccessKey: data.SecretAccessKey,
