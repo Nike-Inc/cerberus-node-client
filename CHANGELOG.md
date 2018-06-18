@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.2] - 2018-06-18
+## Fixed
+- Removed sensitive log info
+
 ## [1.5.1] - 2018-06-15
 ## Fixed
 - Resolved issue with missing credentials in ECS
