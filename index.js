@@ -8,6 +8,7 @@ const kms = require('./lib/kms')
 const lambda = require('./lib/lambda')
 const sts = require('./lib/sts')
 const FormData = require('form-data')
+const Buffer = require('safe-buffer').Buffer
 const packageData = require('./package.json')
 
 module.exports = cerberus

@@ -5,6 +5,7 @@
 let sinon = require('sinon')
 let test = require('blue-tape')
 let http = require('http')
+let Buffer = require('safe-buffer').Buffer
 
 let linereader = require('../lib/linereader')
 let lambda = require('../lib/lambda')
