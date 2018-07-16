@@ -7,7 +7,7 @@ const linereader = require('./lib/linereader')
 const kms = require('./lib/kms')
 const lambda = require('./lib/lambda')
 const sts = require('./lib/sts')
-var FormData = require('form-data')
+const FormData = require('form-data')
 const packageData = require('./package.json')
 
 module.exports = cerberus
@@ -61,7 +61,7 @@ function cerberus (options) {
   let listFile = (keyPath, cb) => fileCerberus(context, 'LIST', keyPath, undefined, cb)
   let readFile = (keyPath, cb) => fileCerberus(context, 'GET', keyPath, undefined, cb)
   let writeFile = (keyPath, data, cb) => fileCerberus(context, 'POST', keyPath, data, cb)
-  let deleteFile = (keyPath, data, cb) => fileCerberus(context, 'DELETE', keyPath, data, cb)
+  let deleteFile = (keyPath, cb) => fileCerberus(context, 'DELETE', keyPath, undefined, cb)
 
   return {
     get: get,
@@ -112,6 +112,15 @@ function callCerberus (context, type, keyPath, data, cb) {
   }
 }
 
+/**
+ * Upload, delete, read, and list files on Cerberus
+ * @param {object} context The request context
+ * @param {string} type - The HTTP method (with the exception of 'LIST') to use as outlined in https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md
+ * @param {string} filePath - The path of the file
+ * @param {object} data - Buffer of the file to upload
+ * @param {function} cb - Callback
+ * @returns {object} Buffer if read file and Cerberus response otherwise
+ */
 function fileCerberus (context, type, filePath, data, cb) {
   context.log(`Starting ${type} file request for ${filePath}`)
   let action = co(function * () {
