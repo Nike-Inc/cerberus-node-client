@@ -7,6 +7,7 @@ const linereader = require('./lib/linereader')
 const kms = require('./lib/kms')
 const lambda = require('./lib/lambda')
 const sts = require('./lib/sts')
+const FormData = require('form-data')
 const packageData = require('./package.json')
 
 module.exports = cerberus
@@ -57,6 +58,10 @@ function cerberus (options) {
   let remove = (keyPath, cb) => callCerberus(context, 'DELETE', keyPath, undefined, cb)
   let list = (keyPath, cb) => callCerberus(context, 'LIST', keyPath, undefined, cb)
   let setLambdaContext = (lambdaContext) => { context.lambdaContext = lambdaContext }
+  let listFile = (keyPath, cb) => fileCerberus(context, 'LIST', keyPath, undefined, cb)
+  let readFile = (keyPath, cb) => fileCerberus(context, 'GET', keyPath, undefined, cb)
+  let writeFile = (keyPath, data, cb) => fileCerberus(context, 'POST', keyPath, data, cb)
+  let deleteFile = (keyPath, cb) => fileCerberus(context, 'DELETE', keyPath, undefined, cb)
 
   return {
     get: get,
@@ -65,6 +70,10 @@ function cerberus (options) {
     list: list,
     delete: remove,
     remove: remove,
+    listFile: listFile,
+    readFile: readFile,
+    writeFile: writeFile,
+    deleteFile: deleteFile,
     setLambdaContext: setLambdaContext
   }
 }
@@ -93,6 +102,54 @@ function callCerberus (context, type, keyPath, data, cb) {
     if (keyResponse.statusCode && keyResponse.statusCode.toString()[0] !== '2') throw new Error('Key Request error, Status: ' + keyResponse.statusCode)
 
     return keyResult && keyResult.data
+  })
+  if (cb) {
+    action
+      .then(result => cb(null, result))
+      .catch(err => cb(err))
+  } else {
+    return action
+  }
+}
+
+/**
+ * Upload, delete, read, and list files on Cerberus
+ * @param {object} context The request context
+ * @param {string} type - The HTTP method (with the exception of 'LIST') to use as outlined in https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md
+ * @param {string} filePath - The path of the file
+ * @param {object} data - Buffer of the file to upload
+ * @param {function} cb - Callback
+ * @returns {object} Buffer if read file and Cerberus response otherwise
+ */
+function fileCerberus (context, type, filePath, data, cb) {
+  context.log(`Starting ${type} file request for ${filePath}`)
+  let action = co(function * () {
+    let token = yield getToken(context)
+    if (!token) throw new Error('unable to retrieve token')
+
+    let url = urlJoin(context.hostUrl, cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath)
+    context.log('token retrieved', token, filePath, url)
+
+    let form
+    if (data) {
+      form = new FormData()
+      form.append('file-content', data, {filename: filePath.match(/([^\/]*)\/*$/)[1]})
+    }
+    let fileResponse = yield request({
+      method: type === 'LIST' ? 'GET' : type,
+      url: url,
+      headers: Object.assign({}, globalHeaders, {'X-Vault-Token': token}, type === 'POST' ? form.getHeaders() : undefined),
+      body: form,
+      json: type === 'LIST' || type === 'DELETE'
+    })
+
+    let fileResult = fileResponse.data
+    if (fileResult && fileResult.errors && fileResult.errors.length > 0) throw new Error(formatCerberusError(fileResult.errors))
+
+    context.log('file retrieved', fileResponse.statusCode.toString(), fileResult)
+    if (fileResponse.statusCode && fileResponse.statusCode.toString()[0] !== '2') throw new Error('File Request error, Status: ' + fileResponse.statusCode)
+
+    return fileResult
   })
   if (cb) {
     action

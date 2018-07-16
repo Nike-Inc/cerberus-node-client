@@ -51,7 +51,11 @@ let mockCerberusHost = (action, handlerOrValue) => {
       // console.log(trimRequest(req))
       mockCalls.push({req: trimRequest(req), result})
       res.setHeader('Content-Type', 'application/json')
-      res.end(JSON.stringify(result))
+      if (Buffer.isBuffer(result)){
+        res.end(result)
+      } else {
+        res.end(JSON.stringify(result))
+      }
     }
 
     let server = http.createServer(typeof handlerOrValue === 'function' ? handlerOrValue : defaultHandler)
@@ -311,6 +315,24 @@ test('Apps put', spec => {
         console.log('error caught', error)
         t.fail()
         // t.ok(/IAM role is not valid/.test(error && error.message), 'error from auth result')
+      })
+      .then(teardown, teardownError)
+  })
+
+  spec.test('Get file should work', t => {
+    process.env.CERBERUS_TOKEN = 'testToken'
+    let client = cerberus({ lambdaContext, hostUrl: cerberusHost })
+
+    t.plan(1)
+
+    return mockCerberusHost(() => client.readFile('test'), Buffer.from('file content'))
+      .then(result => {
+        t.same(result.toString(), 'file content', 'file returned')
+      })
+      .catch(error => {
+        process.env.CERBERUS_TOKEN = undefined
+        console.log('error caught', error)
+        t.fail()
       })
       .then(teardown, teardownError)
   })

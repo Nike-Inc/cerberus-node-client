@@ -84,6 +84,10 @@ To use the promise API omit the callback parameter (always the last one), and en
 * `delete(keyPath [, callback])` - Delete the contents of the **keyPath**. Returns an object
 *  `remove` - alias for `delete`
 * `setLambdaContext(context` - Set the `lambdaContext` after construction. See *Providing the client to your app* for details
+* `listFile(keyPath [, callback])` - List the files available at the **keyPath**. Return an object
+* `readFile(keyPath [, callback])` - Read the file of the **keyPath**. Returns a Buffer object
+* `writeFile(keyPath, data, [, callback]` - Upload a file to the **keyPath**. Returns an object
+* `deleteFile(keyPath, [, callback]` - Delete the file of the **keyPath**. Returns an object
 
 
 # Providing the client to your app
