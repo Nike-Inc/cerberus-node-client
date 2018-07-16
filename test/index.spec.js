@@ -51,7 +51,7 @@ let mockCerberusHost = (action, handlerOrValue) => {
       // console.log(trimRequest(req))
       mockCalls.push({req: trimRequest(req), result})
       res.setHeader('Content-Type', 'application/json')
-      if (Buffer.isBuffer(result)){
+      if (Buffer.isBuffer(result)) {
         res.end(result)
       } else {
         res.end(JSON.stringify(result))
