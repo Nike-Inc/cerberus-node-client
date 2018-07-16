@@ -26,7 +26,7 @@ function trimRequest (req) {
   }
 }
 let defaultCerberusResponse = {
-  auth_data: new Buffer('test').toString('base64')
+  auth_data: Buffer.from('test').toString('base64')
 }
 let defaultToken = {
   'client_token': Math.floor(Math.random() * (1e6 + 1)),
@@ -224,7 +224,7 @@ test('Apps put', spec => {
     const handler = (req, res) => {
       res.setHeader('Content-Type', 'application/json')
       if (req.url.indexOf('auth/user') !== -1) {
-        t.equal('Basic ' + new Buffer('user:password').toString('base64'), req.headers.authorization, 'sent prompted credentials')
+        t.equal('Basic ' + Buffer.from('user:password').toString('base64'), req.headers.authorization, 'sent prompted credentials')
         res.end(JSON.stringify({ data: { client_token: defaultToken } }))
       } else {
         res.end(JSON.stringify(defaultCerberusResponse))
