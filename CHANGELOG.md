@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.0] - 2018-12-19
+## Added
+- Support for STS Authentication
+- JSDocs
+## Removed
+- Support for less than Node 8
+- All logic relating to KMS authentication
+- All logic that read user credentials from a TTY terminal
+
 ## [1.6.0] - 2018-07-16
 ## Added
 - Support for File API from @mayitbeegh

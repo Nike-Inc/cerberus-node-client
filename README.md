@@ -4,123 +4,30 @@ This is a node client for interacting with a Cerberus backend. It can be used in
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
-# Installation
+[![Build Status][travis img]][travis] [![Coverage Status][coverage img]][coverage] [![NPM][npm img]][npm] [![License][license img]][license]
+
+## Installation
 
 ```
 npm install --save cerberus-node-client
 ```
 
-Then, require the package with `var cerberus = require('cerberus-node-client')`
+## Usage
 
-## QuickStart
-
-```
-var cerberus = require('cerberus-node-client')
-var client = cerberus({ hostUrl: YOUR_CERBERUS_HOST })
-client.get('app/YOURAPP/your/keypath').then(secrets => {
-  console.log(secrets) // { key1: value1, key2: value2 }
-})
-```
+See the [CerberusClient](http://engineering.nike.com/cerberus-node-client/CerberusClient.html) class on the [the docs site][docs]
 
 ## Authentication
 
-The cerberus client supports six different configuration modes.
-
-* Lambda Context - Pass in the `context` from your Lambda Handler `handler(event, context)` as the `lambdaContext` parameter.
-* EC2 - This is the default mode, it will be used if the other five are not present.
-* ECS - This mode will be activated when running under ECS and credentials are available to the container (see [IAM Roles for Tasks](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html) for more info)
-* Environment Variables - This is useful for running locally without changing out code, since developer machines cannot posses the IAM roles necessary to decrypt Cerberus authentication responses.
-  * `CERBERUS_TOKEN` - This environment variable will skip token retrival and just use the provided token to talk to cerberus
-* CLI Prompt - This method will run if `prompt: true` is passed to the client constructor, after all other methods fail, and will prompt on the command line for developer credentials. This should only be used in testing.
-* Assume Role - If you'd like to test IAM authentication locally, you can to pass `region` and `assumeRoleArn` into the client constructor.
-
-These configuration modes determine how the client will authenticate with Cerberus.
+The cerberus client uses the [AWS SDK Credentials provider chain](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html) to load AWS IAM credentials and authenticates with Cerberus via the [sts auth endpoint](https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md#app-login-sts-v2-v2authsts-identity)
+This client will work in any environment that has access to AWS Credentials.
 
 Cerberus will attempt to authenticate one its first call. The authentication result will be stored and reused. If the token has expired on a subsequent call, authentication will be repeated with the original configuration. You should not have to worry about authentication or token expiration; just use the client.
 
-# Constructing the client
+## A Note about Lambdas and Cerberus
 
-```javascript
-var cerberus = require('cerberus-node-client')
+While this client supports any env with IAM credentials, generally it does NOT make sense to store Lambda secrets in Cerberus for two reasons:
 
-var client = cerberus({
-    // string, The cerberus URL to use.
-    // OVERRIDDEN by process.env.CERBERUS_ADDR
-    // Either this or the env variable is required
-    hostUrl: YOUR_CERBERUS_HOST,
-
-
-    // The context given to the lambda handler
-    lambdaContext: context,
-
-    // boolean, defaults to false. When true will console.log many operations
-    debug: true,
-
-    // This will be used as the cerberus X-Vault-Token if supplied
-    // OVERRIDDEN by process.env.CERBERUS_TOKEN
-    // If present, normal authentication with cerberus will be skipped
-    // You should normally only be using this in testing environments
-    // When developing locally, it is easier to use process.env.CERBERUS_TOKEN
-    token: 'Some_Auth_Token'
-  })
-```
-
-# Using the Client
-
-This client should be compatible with node 0.12.x (this has not yet been tested, please submit bug reports if you run into issues). It supports both node-style `cb(err [, data])` callbacks and promises.
-
-To use the promise API omit the callback parameter (always the last one), and ensure `global.Promise` supports constructing promises with `new Promise()`. Promises will be returned from all client methods in this case; otherwise, `undefined` will be returned.
-
-**KeyPaths** below are relative to the Cerberus root. This is shown as the `path` value when looking at a Safety Deposit Box (SDB). You must include the full path (including `app` or `shared`) not just the name of the SDB.
-
-> Note to new users: The key path is the path ***exactly*** as shown in the UI, it is ***not*** `${keyPath}/${keyName}`. All of the keys/value paris will be returned from a `get` request as a normal JavaScript object. For example, in the image below `get('app/devportal-prod/config/keys')` would return `{ githubJenkins: 'someSecret' }`. A request for `get('app/devportal-prod/config/keys/githubJenkins')` will return a 404, since that is not a valid path.
-
-![The key path](http://i.imgur.com/WeiWbxE.png)
-
-* `get(keyPath [, callback])` - Read the contents of the **keyPath**. Returns an object
-* `set(keyPath, data [, callback])` - Set the contents of the **keyPath**. Returns `data`
-* `put` - alias for `set`
-* `list(keypath [, callback])` - List the paths available at the **keyPath**. Returns an array
-* `delete(keyPath [, callback])` - Delete the contents of the **keyPath**. Returns an object
-*  `remove` - alias for `delete`
-* `setLambdaContext(context` - Set the `lambdaContext` after construction. See *Providing the client to your app* for details
-* `listFile(keyPath [, callback])` - List the files available at the **keyPath**. Return an object
-* `readFile(keyPath [, callback])` - Read the file of the **keyPath**. Returns a Buffer object
-* `writeFile(keyPath, data, [, callback]` - Upload a file to the **keyPath**. Returns an object
-* `deleteFile(keyPath, [, callback]` - Delete the file of the **keyPath**. Returns an object
-
-
-# Providing the client to your app
-
-Using Cerberus in your app will be easier if you create a wrapper module that handles construction and exports the constructed client. A standard wrappper would look like this
-
-```javascript
-var cerberus = require('cerberus-node-client')
-var client = cerberus({ hostUrl: process.env.CERBERUS_HOST })
-
-module.exports = client
-```
-
-If you are using a Lambda, the `lambdaContext` cannot be set at startup, it can only be set from inside the lambda `handler`. Luckily, you can set the context on an already constructed client.
-
-```javascript
-var cerberus = require('./util/cerberus') // or wherever you put your wrapper
-
-exports.handler = handler
-
-function handler (event, context, callback) {
-  context.callbackWaitsForEmptyEventLoop = false
-  cerberus.setLambdaContext(context)
-}
-```
-
-As long as the rest of your app `require`s your wrapper module, the context will be set and everyone should work.
-
-# Lambdas
-
-Generally it does NOT make sense to store Lambda secrets in Cerberus for two reasons:
-
-1. Cerberus cannot support the scale that lambdas may need, e.g. thousands of requests per second
+1. Cerberus cannt support the scale that lambdas may need, e.g. thousands of requests per second
 1. Lambdas will not want the extra latency needed to authenticate and read from Cerberus
 
 A better solution for Lambda secrets is using the [encrypted environmental variables](http://docs.aws.amazon.com/lambda/latest/dg/env_variables.html)
@@ -129,16 +36,20 @@ feature provided by AWS.
 Another option is to store Lambda secrets in Cerberus but only read them at Lambda deploy time, then storing them as encrypted
 environmental variables, to avoid the extra Cerberus runtime latency.
 
-# Maintenance
-
-This project is maintained by Tim Kye `timothy.kye@nike.com`
-
 ## License
 
 Cerberus Management Service is released under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-[travis]:https://travis-ci.org/Nike-Inc/cerberus-management-service
-[travis img]:https://api.travis-ci.org/Nike-Inc/cerberus-management-service.svg?branch=master
+[travis]:https://travis-ci.org/Nike-Inc/cerberus-node-client
+[travis img]:https://api.travis-ci.org/Nike-Inc/cerberus-node-client.svg?branch=master
 
-[license]:LICENSE.txt
+[license]:https://github.com/Nike-Inc/cerberus-node-client/blob/master/LICENSE.txt
 [license img]:https://img.shields.io/badge/License-Apache%202-blue.svg
+
+[npm]:https://www.npmjs.com/package/cerberus-node-client
+[npm img]:https://img.shields.io/npm/v/cerberus-node-client.svg
+
+[coverage]:https://coveralls.io/github/Nike-Inc/cerberus-node-client?branch=master
+[coverage img]:https://coveralls.io/repos/github/Nike-Inc/cerberus-node-client/badge.svg?branch=master
+
+[docs]:http://engineering.nike.com/cerberus-node-client/
