@@ -1,346 +1,300 @@
 'use strict'
 
-const co = require('co')
 const request = require('request-micro')
 const urlJoin = require('url-join')
-const linereader = require('./lib/linereader')
-const kms = require('./lib/kms')
-const lambda = require('./lib/lambda')
-const sts = require('./lib/sts')
 const FormData = require('form-data')
-const Buffer = require('safe-buffer').Buffer
 const packageData = require('./package.json')
-
-module.exports = cerberus
+const { getAuthenticationHeaders } = require('./lib/sts')
+const { log, noop } = require('./lib/log')
 
 const globalHeaders = {
   'X-Cerberus-Client': `CerberusNodeClient/${packageData.version}`
 }
 
 const cerberusVersion = 'v1'
-const ec2MetadataUrl = 'http://169.254.169.254/latest/meta-data/iam/info'
-const ec2RoleUrl = 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'
-const ec2InstanceDataUrl = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
-
-function log () { console.log.apply(console, ['cerberus-node'].concat(Array.prototype.slice.call(arguments))) }
-function noop () { }
-
-// Client Constructor
-function cerberus (options) {
-  if (!options || typeof options !== 'object') {
-    throw new Error('options parameter is required')
-  }
-  // Copy so we can safely mutate
-  let context = Object.assign({}, options)
-  context.log = context.debug ? log : noop
-
-  context.ecsMetadataUrl = options.ecsMetadataUrl ||
-    `http://169.254.170.2${process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI}`
-
-  // Override context with env variables
-  let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
-  if (envToken) {
-    context.log('environment variable token found', envToken)
-    context.token = envToken
-  }
-
-  let envHost = getEnvironmentVariable(process.env.CERBERUS_ADDR)
-  if (envHost) {
-    context.log('environment variable host url found', envHost)
-    context.hostUrl = envHost
-  }
-  // Validate context
-  if (typeof context.hostUrl !== 'string') {
-    throw new Error('options.hostUrl must be a URL string')
-  }
-
-  let get = (keyPath, cb) => callCerberus(context, 'GET', keyPath, undefined, cb)
-  let set = (keyPath, data, cb) => callCerberus(context, 'POST', keyPath, data, cb)
-  let remove = (keyPath, cb) => callCerberus(context, 'DELETE', keyPath, undefined, cb)
-  let list = (keyPath, cb) => callCerberus(context, 'LIST', keyPath, undefined, cb)
-  let setLambdaContext = (lambdaContext) => { context.lambdaContext = lambdaContext }
-  let listFile = (keyPath, cb) => fileCerberus(context, 'LIST', keyPath, undefined, cb)
-  let readFile = (keyPath, cb) => fileCerberus(context, 'GET', keyPath, undefined, cb)
-  let writeFile = (keyPath, data, cb) => fileCerberus(context, 'POST', keyPath, data, cb)
-  let deleteFile = (keyPath, cb) => fileCerberus(context, 'DELETE', keyPath, undefined, cb)
-
-  return {
-    get: get,
-    set: set,
-    put: set,
-    list: list,
-    delete: remove,
-    remove: remove,
-    listFile: listFile,
-    readFile: readFile,
-    writeFile: writeFile,
-    deleteFile: deleteFile,
-    setLambdaContext: setLambdaContext
-  }
-}
-
-function callCerberus (context, type, keyPath, data, cb) {
-  context.log(`Starting ${type} request for ${keyPath}`)
-  let action = co(function * () {
-    let token = yield getToken(context)
-    if (!token) throw new Error('unable to retrieve token')
-
-    let url = urlJoin(context.hostUrl, cerberusVersion, 'secret', keyPath)
-    context.log('token retrieved', token, keyPath, url)
-
-    let keyResponse = yield request({
-      method: type === 'LIST' ? 'GET' : type,
-      url: url + (type === 'LIST' ? '?list=true' : ''),
-      headers: Object.assign({}, globalHeaders, { 'X-Vault-Token': token }),
-      body: data,
-      json: true
-    })
-
-    let keyResult = keyResponse.data
-    if (keyResult && keyResult.errors && keyResult.errors.length > 0) throw new Error(formatCerberusError(keyResult.errors))
-
-    context.log('key retrieved', keyResponse.statusCode.toString(), keyResult)
-    if (keyResponse.statusCode && keyResponse.statusCode.toString()[0] !== '2') throw new Error('Key Request error, Status: ' + keyResponse.statusCode)
-
-    return keyResult && keyResult.data
-  })
-  if (cb) {
-    action
-      .then(result => cb(null, result))
-      .catch(err => cb(err))
-  } else {
-    return action
-  }
-}
 
 /**
- * Upload, delete, read, and list files on Cerberus
- * @param {object} context The request context
- * @param {string} type - The HTTP method (with the exception of 'LIST') to use as outlined in https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md
- * @param {string} filePath - The path of the file
- * @param {object} data - Buffer of the file to upload
- * @param {function} cb - Callback
- * @returns {object} Buffer if read file and Cerberus response otherwise
+ * Options for creating a {@link CerberusClient}
+ * @interface CerberusClientOptions
+ * @typedef CerberusClientOptions
+ * @type {Object}
+ * @property {string} hostUrl required base url for the Cerberus API.
+ * @property {string} [region] region to sign sts auth request for, defaults to us-west-2
+ * @property {boolean} [debug] If set to true additional logging occurs.
  */
-function fileCerberus (context, type, filePath, data, cb) {
-  context.log(`Starting ${type} file request for ${filePath}`)
-  let action = co(function * () {
-    let token = yield getToken(context)
-    if (!token) throw new Error('unable to retrieve token')
 
-    let url = urlJoin(context.hostUrl, cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath)
-    context.log('token retrieved', token, filePath, url)
+/**
+ * Cerberus client with CRUD operations for secure data and files.
+ *
+ * @example
+ * var CerberusClient = require('cerberus-node-client')
+ *
+ * var client = new CerberusClient({
+ *   // string, The cerberus URL to use.
+ *   hostUrl: YOUR_CERBERUS_HOST,
+ *
+ *   // boolean, defaults to false. When true will console.log many operations
+ *   debug: true,
+ *
+ *   // This will be used as the cerberus X-Vault-Token if supplied
+ *   // OVERRIDDEN by process.env.CERBERUS_TOKEN
+ *   // If present, normal authentication with cerberus will be skipped
+ *   // You should normally only be using this in testing environments
+ *   // When developing locally, it is easier to use process.env.CERBERUS_TOKEN
+ *   token: 'Some_Auth_Token'
+ * })
+ *
+ * cerberusClient.getSecureData('path/to/my/secret').then(secureConfig => {
+ *   //do something with config
+ * })
+ */
+class CerberusClient {
 
-    let form
-    if (data) {
-      form = new FormData()
-      form.append('file-content', data, {filename: filePath.match(/([^\/]*)\/*$/)[1]})
+  /**
+   * @param {CerberusClientOptions} options The options for the Cerberus client.
+   */
+  constructor (options) {
+    if (!options || typeof options !== 'object') {
+      throw new Error('options parameter is required')
     }
-    let fileResponse = yield request({
+    this._log = options.debug ? log : noop
+
+    // Override context with env variables
+    let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
+    if (envToken) {
+      this._log('environment variable token found', envToken)
+      this._token = envToken
+    }
+
+    // Validate configuration
+    if (typeof options.hostUrl !== 'string') {
+      throw new Error('options.hostUrl must be a URL string')
+    }
+
+    this._hostUrl = options.hostUrl
+    this._region = options.region ? options.region : 'us-west-2'
+  }
+
+  /**
+   * Fetches secure data.
+   *
+   * @param {string} path The path for the secure data
+   * @return {Promise<object>} A promise that when resolved supplies the secure data
+   */
+  getSecureData (path) {
+    return this._doSecretAction('GET', path, undefined)
+  }
+
+  /**
+   * Writes secure data.
+   *
+   * @param {string} path The path for the secure data
+   * @param {object} data The secure data
+   * @return {Promise<undefined>} A promise that will be resolved when the write is finished
+   */
+  writeSecureData (path, data) {
+    return this._doSecretAction('POST', path, data)
+  }
+
+  /**
+   * Deletes secure data.
+   *
+   * @param {string} path The path for the secure data
+   * @return {Promise<object>} A promise that will be resolved when the delete is finished
+   */
+  deleteSecureData (path) {
+    return this._doSecretAction('DELETE', path, undefined)
+  }
+
+  /**
+   * lists the keys under a secure data path.
+   *
+   * @param {string} path The path or partial path
+   * @return {Promise<object>} A promise that will be resolved when the list is finished supplying the results
+   */
+  listPathsForSecureData (path) {
+    return this._doSecretAction('LIST', path, undefined)
+  }
+
+  /**
+   * lists the files under a path.
+   *
+   * @param {string} path The path or partial path
+   * @return {Promise<object>} A promise that will be resolved when the list is finished supplying the results
+   */
+  listFile (path) {
+    return this._doFileAction('LIST', path, undefined)
+  }
+
+  /**
+   * Reads the contents of an uploaded file
+   *
+   * @param {string} path The path the the uploaded file
+   * @return {Promise<object>} A promise that will be resolved when the file contents have been fetched
+   */
+  readFile (path) {
+    return this._doFileAction('GET', path, undefined)
+  }
+
+  /**
+   * Uploads a file to a given path
+   *
+   * @param {string} path The path
+   * @param {string|Buffer} data The file buffer or string
+   * @return {Promise<object>} A promise that will be resolved when the file contents have been uploaded
+   */
+  writeFile (path, data) {
+    return this._doFileAction('POST', path, data)
+  }
+
+  /**
+   * deletes an uploaded file
+   *
+   * @param {string} path The path the the uploaded file
+   * @return {Promise<object>} A promise that will be resolved when the file contents have been deleted
+   */
+  deleteFile (path) {
+    return this._doFileAction('DELETE', path, undefined)
+  }
+
+  /**
+   * Performs an API action against the secret endpoint in Cerberus
+   *
+   * @param type The type of secret action
+   * @param {string} path The secure data path
+   * @param body The post for writes
+   * @return {Promise<*>} This method returns a promised that when resolved will supply the secure data.
+   * @private
+   */
+  async _doSecretAction (type, path, body) {
+    this._log(`Starting ${type} request for ${path}`)
+    const token = await this._getToken()
+    const response = await this._executeCerberusRequest({
+      headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }),
       method: type === 'LIST' ? 'GET' : type,
-      url: url,
-      headers: Object.assign({}, globalHeaders, {'X-Vault-Token': token}, type === 'POST' ? form.getHeaders() : undefined),
+      url: urlJoin(this._hostUrl, cerberusVersion, 'secret', path) + (type === 'LIST' ? '?list=true' : ''),
+      body: body
+    })
+
+    return response ? response.data : undefined
+  }
+
+  /**
+   * Executes a request against the Cerberus API dealing with any error cases.
+   *
+   * @param requestConfig The request configuration to be executed
+   * @return {Promise<*>} The response body from Cerberus
+   * @private
+   */
+  async _executeCerberusRequest (requestConfig) {
+    let response
+    try {
+      response = await this._executeRequest(Object.assign({}, { json: true }, requestConfig))
+    } catch (error) {
+      const msg = 'There was an error executing a call to Cerberus.\nmsg: \'' + error.message + '\''
+      this._log(msg)
+      throw new Error(msg)
+    }
+
+    if (!(response.statusCode >= 200 && response.statusCode < 300)) {
+      if (response.headers['content-type'].startsWith('application/json')) {
+        throw new Error('Cerberus returned an error, when executing a call.\nmsg: \'' + JSON.stringify(response.data) + '\'')
+      } else {
+        throw new Error('Cerberus returned a non-success response that wasn\'t JSON' +
+          ', this is likely due to being blocked by the WAF')
+      }
+    }
+
+    return response.data
+  }
+
+  // noinspection JSMethodCanBeStatic
+  /**
+   * Uses the micro request library to execute the request
+   * @param requestConfig
+   * @return {promise<*>}
+   * @private
+   */
+  _executeRequest (requestConfig) {
+    return request(requestConfig)
+  }
+
+  /**
+   * Upload, delete, read, and list files on Cerberus.
+   *
+   * @param {string} type - The HTTP method (with the exception of 'LIST') to use as outlined in https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md
+   * @param {string} filePath - The path of the file
+   * @param {string|Buffer} fileBuffer - Buffer of the file to upload
+   * @returns {Promise<object>} Buffer if read file and Cerberus response otherwise
+   * @private
+   */
+  async _doFileAction (type, filePath, fileBuffer) {
+    this._log(`Starting ${type} file request for ${filePath}`)
+    const token = await this._getToken()
+    let form
+    if (fileBuffer) {
+      form = new FormData({})
+      form.append('file-content', fileBuffer, {filename: filePath.match(/([^\/]*)\/*$/)[1]})
+    }
+
+    const data = await this._executeCerberusRequest({
+      method: type === 'LIST' ? 'GET' : type,
+      url: urlJoin(this._hostUrl, cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath),
+      headers: Object.assign({}, globalHeaders, {'X-Cerberus-Token': token}, type === 'POST' ? form.getHeaders() : undefined),
       body: form,
       json: type === 'LIST' || type === 'DELETE'
     })
 
-    let fileResult = fileResponse.data
-    if (fileResult && fileResult.errors && fileResult.errors.length > 0) throw new Error(formatCerberusError(fileResult.errors))
+    return data
+  }
 
-    context.log('file retrieved', fileResponse.statusCode.toString(), fileResult)
-    if (fileResponse.statusCode && fileResponse.statusCode.toString()[0] !== '2') throw new Error('File Request error, Status: ' + fileResponse.statusCode)
+  /**
+   * Fetches a token either from a local env var or attempts to authenticate with Cerberus via the STS authentication endpoint.
+   *
+   * @return {Promise<string>} when the promise is resolved the Cerberus auth token string is supplied.
+   * @private
+   */
+  async _getToken () {
+    // tokenExpiresAt in secs, Date.now in ms
+    if (this._tokenExpiresAt && (this._tokenExpiresAt <= (Date.now() / 1000))) {
+      this._tokenExpiresAt = null
+      this._token = null
+    }
 
-    return fileResult
-  })
-  if (cb) {
-    action
-      .then(result => cb(null, result))
-      .catch(err => cb(err))
-  } else {
-    return action
+    // Already has token
+    if (this._token) {
+      this._log('returning stored token')
+      return this._token
+    }
+
+    let authResponse
+    try {
+      const authHeaders = await getAuthenticationHeaders(this._region)
+      authResponse = await this._executeCerberusRequest({
+        method: 'POST',
+        url: urlJoin(this._hostUrl, 'v2/auth/sts-identity'),
+        headers: Object.assign({}, globalHeaders, authHeaders)
+      })
+    } catch (error) {
+      throw new Error('There was an issue trying to authenticate with Cerberus using the STS auth endpoint\nmsg: \'' + error.message + '\'')
+    }
+
+    // Expire 60 seconds before lease is up, to account for latency
+    this._tokenExpiresAt = (Date.now() / 1000) + authResponse['lease_duration'] - 60  // token TTL in secs, Date.now in ms
+    this._token = authResponse['client_token']
+    return this._token
   }
 }
 
-const getToken = co.wrap(function * (context) {
-  // tokenExpiresAt in secs, Date.now in ms
-  if (context.tokenExpiresAt && (context.tokenExpiresAt <= (Date.now() / 1000))) {
-    context.tokenExpiresAt = null
-    context.token = null
-  }
-
-  // Already has token
-  if (context.token) {
-    context.log('returning stored token')
-    return context.token
-  }
-
-  let token
-  if (context.prompt) {
-    token = yield getTokenFromPrompt(context)
-  } else if (context.assumeRoleArn && context.region) {
-    let assumeRoleResponse = yield sts.assumeRole({ assumeRoleArn: context.assumeRoleArn })
-    let assumeRoleCredentials = assumeRoleResponse.AssumeRoleResponse.AssumeRoleResult.Credentials
-    context.credentials = {
-      accessKeyId: assumeRoleCredentials.AccessKeyId,
-      secretAccessKey: assumeRoleCredentials.SecretAccessKey,
-      sessionToken: assumeRoleCredentials.SessionToken
-    }
-    token = yield authenticateWithIamRole(context, context.assumeRoleArn, context.region)
-  } else {
-    let handler = getEc2Metadata
-    if (context.lambdaContext) handler = getLambdaMetadata
-    else if (process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI) {
-      handler = getEcsMetadata
-    }
-
-    let metadata = yield handler(context)
-    if (!metadata) throw new Error('No metadata returned from authentication handler')
-    context.log('handler metadata retrieved', metadata)
-    var iamPrincipalArn = 'arn:aws:iam::' + metadata.accountId + ':role/' + metadata.roleName
-    token = yield authenticateWithIamRole(context, iamPrincipalArn, metadata.region)
-  }
-
-  // Set token on context
-  if (token) {
-    // Expire 60 seconds before lease is up, to account for latency
-    context.tokenExpiresAt = (Date.now() / 1000) + token['lease_duration'] - 60  // token TTL in secs, Date.now in ms
-    context.token = token['client_token']
-    return context.token
-  }
-})
-
-const getTokenFromPrompt = co.wrap(function * (context) {
-  if (!context.prompt) throw new Error('Tried to get prompt illegally')
-  context.log('getting credentials from prompt')
-  let email = yield linereader.readLine({ prompt: 'Nike Email: ' })
-  let password = yield linereader.readLine({ prompt: 'Password: ', replace: '*' })
-  context.authorization = makeAuthHeader(email, password)
-  let authResponse = yield request({
-    method: 'GET',
-    url: urlJoin(context.hostUrl, 'v2/auth/user'),
-    headers: { 'authorization': context.authorization },
-    protocol: 'https',
-    json: true
-  })
-  if (authResponse.data && authResponse.data.errors) throw new Error(formatCerberusError(authResponse.data.errors))
-  if (authResponse.data.status === 'mfa_req') {
-    context.log('mfa required', authResponse.data)
-    let mfaAnswer = yield linereader.readLine({ prompt: 'MultiFactor Auth for ' + authResponse.data['data']['devices'][0]['name'] + ': ' })
-    let mfaResponse = yield request.post({
-      url: urlJoin(context.hostUrl, 'v2/auth/mfa_check'),
-      protocol: 'https',
-      headers: globalHeaders,
-      json: true,
-      body: {
-        state_token: authResponse.data['data'].state_token,
-        device_id: authResponse.data['data']['devices'][0].id,
-        otp_token: mfaAnswer
-      }
-    })
-    if (mfaResponse.data && mfaResponse.data.errors) throw new Error(formatCerberusError(mfaResponse.data.errors))
-    context.log('mfa response', mfaResponse.data)
-    return mfaResponse.data['data']['client_token']
-  } else {
-    context.log('user token retrieved', authResponse.data)
-    return authResponse.data['data']['client_token']
-  }
-})
-
-const authenticateWithIamRole = co.wrap(function * (context, iamPrincipalArn, region) {
-  let authResponse = yield request.post({
-    url: urlJoin(context.hostUrl, 'v2/auth/iam-principal'),
-    headers: globalHeaders,
-    body: { iam_principal_arn: iamPrincipalArn, 'region': region },
-    json: true
-  })
-  let authResult = authResponse.data
-  if (!authResult) throw new Error('cerberus returned empty authentication result')
-  context.log('auth result', authResult)
-  context.log('decrypting', authResult)
-  if (authResult.errors) throw new Error(`Cerberus Authentication error: ${formatCerberusError(authResult.errors)}`)
-  if (!authResult['auth_data']) throw new Error('cannot decrypt token, auth_data is missing')
-  let token = yield kms.decrypt(authResult['auth_data'], { region: region, context: context, credentials: context.credentials })
-  context.log('decrypt result', token)
-  return token
-})
-
-const getEcsMetadata = co.wrap(function * (context) {
-  context.log('getting ecs metadata')
-  let metadataResponse = yield request({ url: context.ecsMetadataUrl, json: true })
-
-  let data = metadataResponse.data
-  if (!data) throw new Error(data)
-
-  context.log('got ecs metadata')
-  context.credentials = {
-    accessKeyId: data.AccessKeyId,
-    secretAccessKey: data.SecretAccessKey,
-    sessionToken: data.Token
-  }
-
-  let arn = data.RoleArn.split(':')
-  let arnRolePath = data.RoleArn.split('/')
-  return {
-    accountId: arn[4],
-    roleName: arnRolePath[arnRolePath.length - 1],
-    region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || ''
-  }
-})
-
-const getEc2Metadata = co.wrap(function * (context) {
-  context.log('getting ec2 metadata')
-  let metadata = { }
-  let metadataResponse = yield request({ url: ec2MetadataUrl, json: true })
-  let data = metadataResponse.data
-  if (!data || data.Code !== 'Success') throw new Error(data)
-  context.log('ec2 metadata', data)
-  let arn = data.InstanceProfileArn.split(':')
-  metadata.accountId = arn[4]
-
-  let roleResponse = yield request({ url: ec2RoleUrl })
-  context.log('ec2 role', roleResponse.data.toString())
-  metadata.roleName = roleResponse.data.toString()
-
-  let credentialsResponse = yield request({ url: ec2RoleUrl + metadata.roleName, json: true })
-  context.log('credentials received')
-
-  context.credentials = {
-    accessKeyId: credentialsResponse.data.AccessKeyId,
-    secretAccessKey: credentialsResponse.data.SecretAccessKey,
-    sessionToken: credentialsResponse.data.Token
-  }
-
-  let instanceResponse = yield request({ url: ec2InstanceDataUrl, json: true })
-  context.log('ec2 instance metadata', instanceResponse.data)
-  metadata.region = instanceResponse.data.region
-  return metadata
-})
-
-const getLambdaMetadata = co.wrap(function * (context) {
-  context.log('getting lambda metadata')
-  let arn = context.lambdaContext.invokedFunctionArn.split(':')
-
-  let metadata = { region: arn[3], accountId: arn[4] }
-  let lambdaMetadata = yield lambda.getFunctionConfiguration({ FunctionName: arn[6], Qualifier: arn[7], region: metadata.region })
-    .catch(error => {
-      context.log('error getting lambda conf', error)
-      throw error
-    })
-
-  metadata.roleName = lambdaMetadata.Role.split('/')[1]
-  return metadata
-})
-
-function getEnvironmentVariable (value) {
+/**
+ * Gets the set value or undefined
+ *
+ * @param value The value under question
+ * @return {String|undefined} Returns the string of the value or undefined
+ * @private
+ */
+const getEnvironmentVariable = (value) => {
   return value && value !== 'undefined' && value !== undefined && value !== null ? value : undefined
 }
 
-function makeAuthHeader (username, password) {
-  return 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
-}
-
-const formatCerberusError = (errors) => {
-  return errors instanceof Array
-    ? errors.map(e => e.message || e).join(', ')
-    : JSON.stringify(errors)
-}
+module.exports = CerberusClient

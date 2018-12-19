@@ -1,0 +1,29 @@
+dist: xenial
+language: node_js
+node_js:
+- 11
+- 10
+- 8
+jobs:
+  include:
+  - stage: publish code coverage
+    node_js: '8'
+    script:
+    - npm run test:unit:ci-report-coverage
+  - stage: release docs
+    if: type != pull_request AND branch = master
+    node_js: '8'
+    script:
+    - npm run generate-docs
+    - npm run travis-deploy-github-pages
+deploy:
+  provider: npm
+  email: fieldju@gmail.com
+  api_key:
+    secure: FKW/7W6kER4cnxKBjYAFxlYtKj/1uCfHoKAEthwzQYVyMNbF3b9NAOKZDlBq+LUC7MZ2J/yQ34Ehuhb4WB5sbfwotLZRew5RNAAkJTcLvPjggyIdcgeqzGKLpUCglo94fNpr4feBlEmwFde9DC6aC61KfQkD8XGuOkykoj0IgYYRAy+wVv/p+ZtXCcaNIfwomAByAQRjlYkGE47Khtm65C5Zqw0oNPIDkd9qUBF7163NFBdDsIzzBoCsHjP9otCbQxQxnL22Ugtr7EdZkntbuQxw7PtxWoRvZDC/QZLRt5n8xyRvVDj3zwGmVBGvFzRcp1iTEZqhIwB6/IUSEU+aLnmQ7iKG1H0sNoZtprlmuC4JrnHSchc2e9xWrcgJDZZ9VvLCxWJ4vTlr+JxCrsaPh8zN77bfbREBGdPWebbTr1A0cQWRKtw+tdaRxtW1ZTQ9NEx8d/Ce1fDnM33iSbnaUJB5ikJCrAXYyCxgWUilJiV7oQ3URvprop5y2cNWDBQ8gtxcTnlprX8dT/09I0Ah6pBmyM0BJrb6Pa4VlcYvE6toufsvGRG8CCeJba/vPro87RlnHLk3TPaSKitJpebKxhh2pDa0WrL2BHonyxPiyq3yvffh66yYXfbUZN6EACJK65pVmO4/7Qd5Up2o1Mp3x6ARPjUqvy8zwvZqJR/plTo=
+  on:
+    tags: true
+    repo: Nike-Inc/cerberus-node-client
+env:
+  global:
+    secure: HI1lYPsgqBUzjvWpiZ+B63ZOcKlGttRN0qA7mDXIfwuF+6QU+typao77G7N/9NAUjotUdIvIpVTq2Jv1NmHls3nc8NMIb3W7rOG0G/2IYNfYUnr9UaDFVgZ9zIr9dfXifJvBFRnOZJeXBkUj6kwER8it+jWzKwSJeuKDgSJkCJKtRUPBmerQEkSScOr2Wn2g/J43nWgI+/wChvS/Nq5RWytRA3apfhUbPd7reQITcV4eypBeOpL6aZ0qwC0u69VIcZXGELD7WMYagFqg/bJHoOb8sdlBXUQBGlEtE/fSgdvaZjg95fNYAbMSxt/fnWQNNyncSCwzepKHe9EnYTH4oNkKMiHwz8ULiqUovy/JE2io7cS20f4ZgfEW7DUIK4vd0pQqNepggRmmsQKzng3nMO+MQperrWaxcXKW0l5VxeAPZ1xRyDJA0jCFY0Q/EI2LONS5ItQU71gPjedHLYfC9FK2C8mtlSGagOM8WKTSXLpTGgmdqMK2OsI4bEYQUqUqX+FxHLmG21UZds8ia20QdS4CDHj7TnqST/X4ddZNvP0UMj3u0WxhvyaqeXc4SEGX34+LDSldM/imD7vVO8iS/3jnU2NtXXoTKIVoAcsKLGC7qNOHnNILCw5AnQeI9v4AM0Qppfq7/qNkchL6c6TTT8L9HoTHgz7IAsbvCXp+pEA=
