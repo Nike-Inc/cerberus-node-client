@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run style && npm run test:unit:local",
-    "test:unit:ci-report-coverage": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
+    "test:unit:ci-report-coverage": "jest test/ --coverage --coverageReporters=text-lcov --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
     "test:unit:local": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
     "test:integration": "jest integration/",
     "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
