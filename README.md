@@ -7,7 +7,7 @@ To learn more about Cerberus, please visit the [Cerberus website](http://enginee
 # Installation
 
 ```
-npm install --save cerberus-node-client
+npm install --save cerberus-node-client@"<2.0.0"
 ```
 
 Then, require the package with `var cerberus = require('cerberus-node-client')`
