@@ -1,6 +1,6 @@
 # Cerberus Node Client
 
-This is a node client for interacting with a Cerberus backend. It can be used in Amazon EC2 instances and Amazon Lambdas.
+This is a node client for interacting with a Cerberus backend. It can be used in any environment that has [AWS credentials][node aws credentials] available.
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
@@ -18,7 +18,7 @@ See the [CerberusClient](http://engineering.nike.com/cerberus-node-client/Cerber
 
 ## Authentication
 
-The cerberus client uses the [AWS SDK Credentials provider chain](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html) to load AWS IAM credentials and authenticates with Cerberus via the [sts auth endpoint](https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md#app-login-sts-v2-v2authsts-identity)
+The cerberus client uses the [AWS SDK Credentials provider chain][node aws credentials] to load AWS IAM credentials and authenticates with Cerberus via the [sts auth endpoint](https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md#app-login-sts-v2-v2authsts-identity)
 This client will work in any environment that has access to AWS Credentials.
 
 Cerberus will attempt to authenticate one its first call. The authentication result will be stored and reused. If the token has expired on a subsequent call, authentication will be repeated with the original configuration. You should not have to worry about authentication or token expiration; just use the client.
@@ -27,7 +27,7 @@ Cerberus will attempt to authenticate one its first call. The authentication res
 
 While this client supports any env with IAM credentials, generally it does NOT make sense to store Lambda secrets in Cerberus for two reasons:
 
-1. Cerberus cannt support the scale that lambdas may need, e.g. thousands of requests per second
+1. Cerberus can't support the scale that lambdas may need, e.g. thousands of requests per second
 1. Lambdas will not want the extra latency needed to authenticate and read from Cerberus
 
 A better solution for Lambda secrets is using the [encrypted environmental variables](http://docs.aws.amazon.com/lambda/latest/dg/env_variables.html)
@@ -53,3 +53,4 @@ Cerberus Management Service is released under the [Apache License, Version 2.0](
 [coverage img]:https://coveralls.io/repos/github/Nike-Inc/cerberus-node-client/badge.svg?branch=master
 
 [docs]:http://engineering.nike.com/cerberus-node-client/
+[node aws credentials]:https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html
