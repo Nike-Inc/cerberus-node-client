@@ -9,8 +9,7 @@ jobs:
   - stage: publish code coverage
     node_js: '8'
     script:
-    - npm run test:coverage
-    - npm run report-coverage-to-coveralls
+    - npm run test:unit:ci-report-coverage
   - stage: release docs
     if: type != pull_request AND branch = master
     node_js: '8'

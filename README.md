@@ -4,6 +4,8 @@ This is a node client for interacting with a Cerberus backend. It can be used in
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
+This library is compatible with node 8.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
+
 [![Build Status][travis img]][travis] [![Coverage Status][coverage img]][coverage] [![NPM][npm img]][npm] [![License][license img]][license]
 
 ## Installation

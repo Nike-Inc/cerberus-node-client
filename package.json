@@ -4,14 +4,12 @@
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
-    "test": "",
-    "test:unit": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
+    "test": "npm run style && npm run test:unit:local",
+    "test:unit:ci-report-coverage": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
+    "test:unit:local": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
     "test:integration": "jest integration/",
-    "test:coverage": "nyc --report-dir build/coverage/ --reporter=html --reporter=text --reporter=text-lcov npm test:unit",
     "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
     "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
-    "report-coverage-to-coveralls": "nyc report --reporter=text-lcov | coveralls",
-    "report": "nyc report --reporter=html",
     "generate-docs": "./scripts/generate-docs.sh",
     "deploy-docs": "gh-pages -d build/docs",
     "travis-deploy-github-pages": "gh-pages -r \"https://${GH_TOKEN}@github.com/yaorg/node-measured.git\" -d build/docs"
