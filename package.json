@@ -1,17 +1,19 @@
 {
   "name": "cerberus-node-client",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "scripts": {
-    "test": "npm run style && npm run test:coverage && npm run report",
+    "test": "npm run style && npm run test:unit:local",
+    "test:all": "npm run style && npm run test:unit:local && npm run test:integration",
+    "test:unit:ci-report-coverage": "jest test/ --coverage --coverageReporters=text-lcov --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
+    "test:unit:local": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
+    "test:integration": "PROJECT_DIR=$(pwd) jest integration/",
     "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
     "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
-    "test:unit": "blue-tape test/**/**.spec.js | ./node_modules/.bin/tap-spec",
-    "test:coverage": "nyc --check-coverage --lines 60 npm run test:unit",
-    "report": "nyc report --reporter=html",
-    "test:lineread": "node test/lineread.manual.js",
-    "test:watch": "npm run test:unit -s & chokidar 'lib/**/*.js' 'index.js' 'test/**/*.spec.js' --polling -c \"npm run test:unit -s\""
+    "generate-docs": "./scripts/generate-docs.sh",
+    "deploy-docs": "gh-pages -d build/docs",
+    "travis-deploy-github-pages": "gh-pages -r \"https://${GH_TOKEN}@github.com/yaorg/node-measured.git\" -d build/docs"
   },
   "repository": {
     "type": "git",
@@ -19,8 +21,7 @@
   },
   "keywords": [
     "nike",
-    "cerberus",
-    "vault"
+    "cerberus"
   ],
   "files": [
     "index.js",
@@ -35,21 +36,22 @@
     "parser": "babel-eslint"
   },
   "dependencies": {
-    "aws4": "^1.6.0",
-    "co": "^4.6.0",
+    "@aws-sdk/credential-provider-node": "0.1.0-preview.1",
     "form-data": "^2.3.2",
     "request-micro": "^1.3.0",
-    "safe-buffer": "^5.1.2",
     "url-join": "^1.1.0"
   },
   "devDependencies": {
     "babel-eslint": "^6.1.0",
-    "blue-tape": "^0.2.0",
-    "chokidar-cli": "^1.2.0",
+    "coveralls": "^3.0.2",
+    "gh-pages": "^2.0.1",
+    "ink-docstrap": "^1.3.2",
+    "jest": "^23.6.0",
+    "jsdoc": "^3.5.5",
     "nyc": "^11.0.2",
-    "sinon": "^2.2.0",
     "snazzy": "^4.0.0",
     "standard": "^7.1.2",
-    "tap-spec": "^4.1.1"
+    "tap-spec": "^4.1.1",
+    "uuid": "^3.3.2"
   }
 }
