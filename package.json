@@ -13,7 +13,7 @@
     "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
     "generate-docs": "./scripts/generate-docs.sh",
     "deploy-docs": "gh-pages -d build/docs",
-    "travis-deploy-github-pages": "gh-pages -r \"https://${GH_TOKEN}@github.com/yaorg/node-measured.git\" -d build/docs"
+    "travis-deploy-github-pages": "gh-pages -r \"https://${GH_TOKEN}@github.com/Nike-Inc/cerberus-node-client.git\" -d build/docs"
   },
   "repository": {
     "type": "git",
