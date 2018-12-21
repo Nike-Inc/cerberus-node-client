@@ -11,7 +11,6 @@ rm -fr ${ROOT_DIR}/build/docs
 mkdir -p ${ROOT_DIR}/build/docs
 
 jsdoc --recurse --configure ./.jsdoc.json \
---tutorials ${ROOT_DIR}/tutorials \
 --template ${DOCSTRAP_PATH} \
 --readme ${ROOT_DIR}/README.md \
 --destination build/docs/ \
