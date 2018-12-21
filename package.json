@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run style && npm run test:unit:local",
+    "test:all": "npm run style && npm run test:unit:local && npm run test:integration",
     "test:unit:ci-report-coverage": "jest test/ --coverage --coverageReporters=text-lcov --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
     "test:unit:local": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
-    "test:integration": "jest integration/",
+    "test:integration": "PROJECT_DIR=$(pwd) jest integration/",
     "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
     "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
     "generate-docs": "./scripts/generate-docs.sh",
@@ -35,8 +36,7 @@
     "parser": "babel-eslint"
   },
   "dependencies": {
-    "aws-sdk": "^2.368.0",
-    "crypto": "^1.0.1",
+    "@aws-sdk/credential-provider-node": "0.1.0-preview.1",
     "form-data": "^2.3.2",
     "request-micro": "^1.3.0",
     "url-join": "^1.1.0"
@@ -51,6 +51,7 @@
     "nyc": "^11.0.2",
     "snazzy": "^4.0.0",
     "standard": "^7.1.2",
-    "tap-spec": "^4.1.1"
+    "tap-spec": "^4.1.1",
+    "uuid": "^3.3.2"
   }
 }

@@ -160,6 +160,33 @@ describe('The CerberusClient', () => {
       })
     })
 
+    it('executes a request and returns a valid ListKeyResult as expected when listing a path that has no keys', async () => {
+      stubResponse({
+        headers: {
+          'content-type': 'application/json'
+        },
+        statusCode: 404,
+        errors: []
+      })
+
+      const paths = await cerberusClient.listPathsForSecureData('path')
+
+      expect(actualRequestConfig).toEqual({
+        headers: {
+          'X-Cerberus-Client': `CerberusNodeClient/${packageData.version}`,
+          'X-Cerberus-Token': stubToken
+        },
+        method: 'GET',
+        url: 'https://demo.example.cerberus.com/v1/secret/path?list=true',
+        body: undefined,
+        json: true
+      })
+
+      expect(paths).toEqual({
+        keys: []
+      })
+    })
+
     it('executes a request and returns the data as expected when writing a secret', async () => {
       stubResponse({
         statusCode: 204

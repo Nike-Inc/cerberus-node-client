@@ -17,10 +17,44 @@ const cerberusVersion = 'v1'
  * Options for creating a {@link CerberusClient}
  * @interface CerberusClientOptions
  * @typedef CerberusClientOptions
- * @type {Object}
+ * @type {object}
  * @property {string} hostUrl required base url for the Cerberus API.
  * @property {string} [region] region to sign sts auth request for, defaults to us-west-2
  * @property {boolean} [debug] If set to true additional logging occurs.
+ */
+
+/**
+ * @interface ListKeyResult
+ * @typedef ListKeyResult
+ * @type {object}
+ * @property {array<string>} keys
+ */
+
+/**
+ * @interface ListFileResult
+ * @typedef ListFileResult
+ * @type {object}
+ * @property {boolean} has_next If the result requires pagination
+ * @property {string} next_offset The offset to use for the next page
+ * @property {number} limit The limit that was used for the results
+ * @property {number} offset The offset of the results
+ * @property {number} file_count_in_result Number of files in result
+ * @property {number} total_file_count Number of total files under path
+ * @property {array<SecureFileSummaries>} secure_file_summaries
+ */
+
+/**
+ * @interface SecureFileSummaries
+ * @typedef SecureFileSummaries
+ * @type {object}
+ * @property {string} sdbox_id The SDB id
+ * @property {string} path The path for the file
+ * @property {number} size_in_bytes The size in bytes of the file
+ * @property {string} name The name of the file
+ * @property {string} created_by Who originally uploaded the file
+ * @property {string} created_ts ISO 8061 String of when the file was originally uploaded
+ * @property {string} last_updated_by Who last updated the file
+ * @property {string} last_updated_ts ISO 8061 String of when the file was last updated
  */
 
 /**
@@ -109,18 +143,31 @@ class CerberusClient {
   /**
    * lists the keys under a secure data path.
    *
+   * If no keys are present {ListKeyResult} will have an empty array.
+   *
    * @param {string} path The path or partial path
-   * @return {Promise<object>} A promise that will be resolved when the list is finished supplying the results
+   * @return {Promise<ListKeyResult>} A promise that will be resolved when the list is finished supplying the results
    */
-  listPathsForSecureData (path) {
-    return this._doSecretAction('LIST', path, undefined)
+  async listPathsForSecureData (path) {
+    let res
+    try {
+      res = await this._doSecretAction('LIST', path, undefined)
+    } catch (e) {
+      // If no keys under a partial path can be found the API returns a 404, lets convert that to set of empty keys
+      if (e.message.includes('status code: 404')) {
+        res = {keys: []}
+      } else {
+        throw e
+      }
+    }
+    return res
   }
 
   /**
    * lists the files under a path.
    *
    * @param {string} path The path or partial path
-   * @return {Promise<object>} A promise that will be resolved when the list is finished supplying the results
+   * @return {Promise<ListFileResult>} A promise that will be resolved when the list is finished supplying the {ListFileResult}
    */
   listFile (path) {
     return this._doFileAction('LIST', path, undefined)
@@ -130,7 +177,7 @@ class CerberusClient {
    * Reads the contents of an uploaded file
    *
    * @param {string} path The path the the uploaded file
-   * @return {Promise<object>} A promise that will be resolved when the file contents have been fetched
+   * @return {Promise<Buffer|string>} A promise that will be resolved when the file contents have been fetched
    */
   readFile (path) {
     return this._doFileAction('GET', path, undefined)
@@ -198,7 +245,7 @@ class CerberusClient {
 
     if (!(response.statusCode >= 200 && response.statusCode < 300)) {
       if (response.headers['content-type'].startsWith('application/json')) {
-        throw new Error('Cerberus returned an error, when executing a call.\nmsg: \'' + JSON.stringify(response.data) + '\'')
+        throw new Error(`Cerberus returned an error, when executing a call.\nstatus code: ${response.statusCode}\nmsg: ${JSON.stringify(response.data)}`)
       } else {
         throw new Error('Cerberus returned a non-success response that wasn\'t JSON' +
           ', this is likely due to being blocked by the WAF')
