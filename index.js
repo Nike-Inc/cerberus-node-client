@@ -20,6 +20,7 @@ const cerberusVersion = 'v1'
  * @type {object}
  * @property {string} hostUrl required base url for the Cerberus API.
  * @property {string} [region] region to sign sts auth request for, defaults to us-west-2
+ * @property {string} [token] Override the cerberus token. Useful for testing
  * @property {boolean} [debug] If set to true additional logging occurs.
  */
 
@@ -93,11 +94,16 @@ class CerberusClient {
     }
     this._log = options.debug ? log : noop
 
-    // Override context with env variables
-    let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
-    if (envToken) {
-      this._log('environment variable token found', envToken)
-      this._token = envToken
+    if (options.token) {
+      this._log('constructor options token found', options.token)
+      this._token = options.token
+    } else {
+      // Override context with env variables
+      let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
+      if (envToken) {
+        this._log('environment variable token found', envToken)
+        this._token = envToken
+      }
     }
 
     // Validate configuration

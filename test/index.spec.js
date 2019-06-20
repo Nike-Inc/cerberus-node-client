@@ -71,10 +71,23 @@ describe('The CerberusClient', () => {
       expect(client._log).toBe(noop)
     })
 
+    it('should use the supplied options.token for the token if present', async () => {
+      const fakeToken = 'abc-123'
+      const client = new CerberusClient({hostUrl: 'some-url', token: fakeToken})
+      expect(await client._getToken()).toBe(fakeToken)
+    })
+
     it('should use the supplied CERBERUS_TOKEN env var for the token if present', async () => {
       const fakeToken = 'abc-123'
       process.env['CERBERUS_TOKEN'] = fakeToken
       const client = new CerberusClient({hostUrl: 'some-url'})
+      expect(await client._getToken()).toBe(fakeToken)
+    })
+
+    it('should use the supplied options.token over CERBERUS_TOKEN env var for the token if both are provided', async () => {
+      const fakeToken = 'abc-123'
+      process.env['CERBERUS_TOKEN'] = 'not the token'
+      const client = new CerberusClient({hostUrl: 'some-url', token: fakeToken})
       expect(await client._getToken()).toBe(fakeToken)
     })
   })
