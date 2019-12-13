@@ -79,7 +79,7 @@ const cerberusVersion = 'v1'
  *   token: 'Some_Auth_Token'
  * })
  *
- * cerberusClient.getSecureData('path/to/my/secret').then(secureConfig => {
+ * client.getSecureData('path/to/my/secret').then(secureConfig => {
  *   //do something with config
  * })
  */
