@@ -25,6 +25,25 @@ This client will work in any environment that has access to AWS Credentials.
 
 Cerberus will attempt to authenticate one its first call. The authentication result will be stored and reused. If the token has expired on a subsequent call, authentication will be repeated with the original configuration. You should not have to worry about authentication or token expiration; just use the client.
 
+## Testing
+First, make sure the following environment variables are set before running the Node Client integration tests:
+```
+export CERBERUS_HOST="https://example.cerberus.com
+export TEST_SDB="my-sdb"
+export TEST_SDB_CATEGORY="app"
+```
+Ensure the TEST_SDB and TEST_SDB_CATEGORY variables match up with the path to your test sdb (i.e. app/my-sdb/test-path)
+
+Then make sure AWS credentials have been obtained. One method is by running [gimme-aws-creds](https://github.com/Nike-Inc/gimme-aws-creds):
+```
+gimme-aws-creds
+```
+
+Next, in the project directory run: 
+```
+npm run style && npm run test:unit:local && npm run test:integration
+```
+
 ## A Note about Lambdas and Cerberus
 
 While this client supports any env with IAM credentials, generally it does NOT make sense to store Lambda secrets in Cerberus for two reasons:
