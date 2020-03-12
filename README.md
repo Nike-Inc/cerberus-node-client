@@ -28,7 +28,7 @@ Cerberus will attempt to authenticate one its first call. The authentication res
 ## Testing
 First, make sure the following environment variables are set before running the Node Client integration tests:
 ```
-export CERBERUS_HOST="https://example.cerberus.com
+export CERBERUS_HOST="https://example.cerberus.com"
 export TEST_SDB="my-sdb"
 export TEST_SDB_CATEGORY="app"
 ```
