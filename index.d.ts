@@ -10,7 +10,7 @@ declare module 'cerberus-node-client' {
         keys: string[];
     }
 
-    interface SecureFileSummaries {
+    interface SecureFileSummary {
         sdbox_id: string;
         path: string;
         size_in_bytes: number;
@@ -28,7 +28,7 @@ declare module 'cerberus-node-client' {
         offset: number;
         file_count_in_result: number;
         total_file_count: number;
-        secure_file_summaries: SecureFileSummaries[];
+        secure_file_summaries: SecureFileSummary[];
     }
 
     class CerberusClient {

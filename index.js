@@ -41,12 +41,12 @@ const cerberusVersion = 'v1'
  * @property {number} offset The offset of the results
  * @property {number} file_count_in_result Number of files in result
  * @property {number} total_file_count Number of total files under path
- * @property {array<SecureFileSummaries>} secure_file_summaries
+ * @property {array<SecureFileSummary>} secure_file_summaries
  */
 
 /**
- * @interface SecureFileSummaries
- * @typedef SecureFileSummaries
+ * @interface SecureFileSummary
+ * @typedef SecureFileSummary
  * @type {object}
  * @property {string} sdbox_id The SDB id
  * @property {string} path The path for the file

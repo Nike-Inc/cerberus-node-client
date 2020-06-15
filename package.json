@@ -3,6 +3,7 @@
   "version": "2.0.1",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "npm run style && npm run test:unit:local",
     "test:all": "npm run style && npm run test:unit:local && npm run test:integration",
