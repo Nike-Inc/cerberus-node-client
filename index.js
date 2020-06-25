@@ -84,7 +84,6 @@ const cerberusVersion = 'v1'
  * })
  */
 class CerberusClient {
-
   /**
    * @param {CerberusClientOptions} options The options for the Cerberus client.
    */
@@ -99,7 +98,7 @@ class CerberusClient {
       this._token = options.token
     } else {
       // Override context with env variables
-      let envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
+      const envToken = getEnvironmentVariable(process.env.CERBERUS_TOKEN)
       if (envToken) {
         this._log('environment variable token found', envToken)
         this._token = envToken
@@ -161,7 +160,7 @@ class CerberusClient {
     } catch (e) {
       // If no keys under a partial path can be found the API returns a 404, lets convert that to set of empty keys
       if (e.message.includes('status code: 404')) {
-        res = {keys: []}
+        res = { keys: [] }
       } else {
         throw e
       }
@@ -287,13 +286,13 @@ class CerberusClient {
     let form
     if (fileBuffer) {
       form = new FormData({})
-      form.append('file-content', fileBuffer, {filename: filePath.match(/([^\/]*)\/*$/)[1]})
+      form.append('file-content', fileBuffer, { filename: filePath.match(/([^/]*)\/*$/)[1] })
     }
 
     const data = await this._executeCerberusRequest({
       method: type === 'LIST' ? 'GET' : type,
       url: urlJoin(this._hostUrl, cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath),
-      headers: Object.assign({}, globalHeaders, {'X-Cerberus-Token': token}, type === 'POST' ? form.getHeaders() : undefined),
+      headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }, type === 'POST' ? form.getHeaders() : undefined),
       body: form,
       json: type === 'LIST' || type === 'DELETE'
     })
@@ -333,8 +332,8 @@ class CerberusClient {
     }
 
     // Expire 60 seconds before lease is up, to account for latency
-    this._tokenExpiresAt = (Date.now() / 1000) + authResponse['lease_duration'] - 60  // token TTL in secs, Date.now in ms
-    this._token = authResponse['client_token']
+    this._tokenExpiresAt = (Date.now() / 1000) + authResponse.lease_duration - 60 // token TTL in secs, Date.now in ms
+    this._token = authResponse.client_token
     return this._token
   }
 }
