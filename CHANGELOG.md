@@ -4,9 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [2.2.6] - 2020-06-25
+## [3.0.0] - 2020-06-25
+## Deprecated
+- Node 8 is no longer supported
 ## Fixed
-- Updated version of @aws-sdk/credential-provider-node
+- Updated all dependencies to latest versions
+- Fixed standard formatting errors
+- Improved test coverage
+## Added
+- Added tests for logger
+- Compatibility to run cerberus-node-client within Kubernetes
 
 ## [2.2.4] - 2020-06-25
 ## Fixed
