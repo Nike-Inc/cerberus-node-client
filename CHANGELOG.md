@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.6] - 2020-06-25
+## Fixed
+- Updated version of @aws-sdk/credential-provider-node
+
 ## [2.2.4] - 2020-06-25
 ## Fixed
 - Updated version of minimist
