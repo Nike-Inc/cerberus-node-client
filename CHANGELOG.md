@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.4] - 2020-06-25
+## Fixed
+- Updated version of minimist
+
+## [2.2.3] - 2020-06-18
+## Added
+- Add typescript definition to published package
+
 ## [2.2.2] - 2020-06-16
 ## Fixed
 - Use correct NPM OTP
