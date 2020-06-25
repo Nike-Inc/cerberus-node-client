@@ -54,7 +54,7 @@ describe('The CerberusClient', () => {
   })
 
   describe('can be used to interact with /v1/secret-files and', () => {
-    const file = fs.readFileSync(`${process.env['PROJECT_DIR']}/LICENSE.txt`)
+    const file = fs.readFileSync(`${process.env.PROJECT_DIR}/LICENSE.txt`)
 
     it('write a file', async () => {
       await cerberusClient.writeFile(`${testSDBCategory}/${testSDB}/${testId}/secret-file`, file)
