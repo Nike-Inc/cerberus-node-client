@@ -10,18 +10,18 @@ before_install:
 jobs:
   include:
   - stage: publish code coverage
-    node_js: '12'
+    node_js: '10'
     script:
     - npm run test:unit:ci-report-coverage
   - stage: release docs
     if: type != pull_request AND branch = master
-    node_js: '12'
+    node_js: '10'
     script:
     - npm run generate-docs
     - npm run travis-deploy-github-pages
   - stage: npm release
     if: tag IS present
-    node_js: '12'
+    node_js: '10'
     script:
     - scripts/publish.sh
 env:
