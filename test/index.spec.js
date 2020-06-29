@@ -1,11 +1,16 @@
 /* eslint-env jest */
+const request = require('request-micro')
 const CerberusClient = require('../index')
 const packageData = require('../package.json')
 const { log, noop } = require('../lib/log')
 const sts = require('../lib/sts')
+
 jest.mock('../lib/sts', () => ({
   getAuthenticationHeaders: jest.fn()
 }))
+
+jest
+  .mock('request-micro', () => jest.fn())
 
 /**
  * @type {CerberusClientOptions}
@@ -15,14 +20,14 @@ const options = {
 }
 
 const baseSecretResponse = {
-  'request_id': 'f2c3e309dd28e4dd',
-  'lease_id': '',
-  'renewable': false,
-  'lease_duration': 3600,
-  'wrap_info': null,
-  'warnings': null,
-  'auth': null,
-  'metadata': { }
+  request_id: 'f2c3e309dd28e4dd',
+  lease_id: '',
+  renewable: false,
+  lease_duration: 3600,
+  wrap_info: null,
+  warnings: null,
+  auth: null,
+  metadata: { }
 }
 
 const stubToken = 'abc-123-def-456'
@@ -30,7 +35,7 @@ const stubToken = 'abc-123-def-456'
 describe('The CerberusClient', () => {
   describe('when being instantiated', () => {
     afterEach(() => {
-      process.env['CERBERUS_TOKEN'] = undefined
+      process.env.CERBERUS_TOKEN = undefined
     })
 
     it('throws an error if options where omitted during construction', () => {
@@ -73,21 +78,21 @@ describe('The CerberusClient', () => {
 
     it('should use the supplied options.token for the token if present', async () => {
       const fakeToken = 'abc-123'
-      const client = new CerberusClient({hostUrl: 'some-url', token: fakeToken})
+      const client = new CerberusClient({ hostUrl: 'some-url', token: fakeToken })
       expect(await client._getToken()).toBe(fakeToken)
     })
 
     it('should use the supplied CERBERUS_TOKEN env var for the token if present', async () => {
       const fakeToken = 'abc-123'
-      process.env['CERBERUS_TOKEN'] = fakeToken
-      const client = new CerberusClient({hostUrl: 'some-url'})
+      process.env.CERBERUS_TOKEN = fakeToken
+      const client = new CerberusClient({ hostUrl: 'some-url' })
       expect(await client._getToken()).toBe(fakeToken)
     })
 
     it('should use the supplied options.token over CERBERUS_TOKEN env var for the token if both are provided', async () => {
       const fakeToken = 'abc-123'
-      process.env['CERBERUS_TOKEN'] = 'not the token'
-      const client = new CerberusClient({hostUrl: 'some-url', token: fakeToken})
+      process.env.CERBERUS_TOKEN = 'not the token'
+      const client = new CerberusClient({ hostUrl: 'some-url', token: fakeToken })
       expect(await client._getToken()).toBe(fakeToken)
     })
   })
@@ -128,7 +133,7 @@ describe('The CerberusClient', () => {
     it('executes a request and returns the data as expected when reading a secret', async () => {
       stubResponse({
         statusCode: 200,
-        data: Object.assign({}, baseSecretResponse, {data: {foo: 'bar'}})
+        data: Object.assign({}, baseSecretResponse, { data: { foo: 'bar' } })
       })
 
       const secureData = await cerberusClient.getSecureData('path')
@@ -152,7 +157,7 @@ describe('The CerberusClient', () => {
     it('executes a request and returns the data as expected when listing a path', async () => {
       stubResponse({
         statusCode: 200,
-        data: Object.assign({}, baseSecretResponse, {data: {keys: ['key1', 'key2', 'partialPath1/']}})
+        data: Object.assign({}, baseSecretResponse, { data: { keys: ['key1', 'key2', 'partialPath1/'] } })
       })
 
       const paths = await cerberusClient.listPathsForSecureData('path')
@@ -200,19 +205,30 @@ describe('The CerberusClient', () => {
       })
     })
 
+    it('re-throws when listing secure paths, when response error is not 404', () => {
+      stubResponse({
+        headers: {
+          'content-type': 'application/json'
+        },
+        statusCode: 500,
+        errors: []
+      })
+      expect(cerberusClient.listPathsForSecureData('path')).rejects.toThrow()
+    })
+
     it('executes a request and returns the data as expected when writing a secret', async () => {
       stubResponse({
         statusCode: 204
       })
 
-      const res = await cerberusClient.writeSecureData('path', {foo: 'bar'})
+      const res = await cerberusClient.writeSecureData('path', { foo: 'bar' })
 
       expect(actualRequestConfig).toEqual({
         headers: {
           'X-Cerberus-Client': `CerberusNodeClient/${packageData.version}`,
           'X-Cerberus-Token': stubToken
         },
-        body: {foo: 'bar'},
+        body: { foo: 'bar' },
         method: 'POST',
         url: 'https://demo.example.cerberus.com/v1/secret/path',
         json: true
@@ -278,22 +294,22 @@ describe('The CerberusClient', () => {
 
     it('executes a request and returns the data as expected when listing a path', async () => {
       const responseBody = {
-        'has_next': false,
-        'next_offset': null,
-        'limit': 1000,
-        'offset': 0,
-        'file_count_in_result': 1,
-        'total_file_count': 1,
-        'secure_file_summaries': [ {
-          'sdbox_id': '123-456-78',
-          'path': 'keys/pkcs8-private-key.pem',
-          'size_in_bytes': 1725,
-          'name': 'pkcs8-private-key.peml',
-          'created_by': 'Justin.Field@example.com',
-          'created_ts': '2018-10-19T23:04:12.644Z',
-          'last_updated_by': 'Justin.Field@nike.com',
-          'last_updated_ts': '2018-11-02T21:21:38.722Z'
-        } ]
+        has_next: false,
+        next_offset: null,
+        limit: 1000,
+        offset: 0,
+        file_count_in_result: 1,
+        total_file_count: 1,
+        secure_file_summaries: [{
+          sdbox_id: '123-456-78',
+          path: 'keys/pkcs8-private-key.pem',
+          size_in_bytes: 1725,
+          name: 'pkcs8-private-key.peml',
+          created_by: 'Justin.Field@example.com',
+          created_ts: '2018-10-19T23:04:12.644Z',
+          last_updated_by: 'Justin.Field@nike.com',
+          last_updated_ts: '2018-11-02T21:21:38.722Z'
+        }]
       }
       stubResponse({
         statusCode: 200,
@@ -429,15 +445,15 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
             },
             statusCode: 400,
             data: {
-              'error_id': 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
-              'errors': [
+              error_id: 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
+              errors: [
                 {
-                  'code': 99106,
-                  'message': 'some message'
+                  code: 99106,
+                  message: 'some message'
                 },
                 {
-                  'code': 99108,
-                  'message': 'some other message'
+                  code: 99108,
+                  message: 'some other message'
                 }
               ]
             }
@@ -457,11 +473,11 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
             },
             statusCode: 400,
             data: {
-              'error_id': 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
-              'errors': [
+              error_id: 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
+              errors: [
                 {
-                  'code': 99106,
-                  'message': 'some message'
+                  code: 99106,
+                  message: 'some message'
                 }
               ]
             }
@@ -481,8 +497,8 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
             },
             statusCode: 400,
             data: {
-              'error_id': 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
-              'errors': []
+              error_id: 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
+              errors: []
             }
           }
         })
@@ -500,7 +516,7 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
             },
             statusCode: 400,
             data: {
-              'errors': [
+              errors: [
                 'permission denied'
               ]
             }
@@ -520,7 +536,7 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
             },
             statusCode: 400,
             data: {
-              'errors': []
+              errors: []
             }
           }
         })
@@ -611,6 +627,12 @@ Hello world
       })
       await expect(cerberusClient._getToken()).rejects.toThrow(/There was an issue trying to authenticate with Cerberus/)
       expect(sts.getAuthenticationHeaders.mock.calls.length).toBe(1)
+    })
+    describe('_executeRequest', () => {
+      it('makes the call to the actual request library', () => {
+        cerberusClient._executeRequest()
+        expect(request).toHaveBeenCalled()
+      })
     })
   })
 })

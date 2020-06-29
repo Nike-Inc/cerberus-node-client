@@ -1,27 +1,27 @@
-dist: xenial
+dist: focal
 language: node_js
 node_js:
-- 11
 - 10
-- 8
+- 12
+- 14
 before_install:
 - sudo apt-get -qq update
 - sudo apt-get install -y oathtool
 jobs:
   include:
   - stage: publish code coverage
-    node_js: '8'
+    node_js: '10'
     script:
     - npm run test:unit:ci-report-coverage
   - stage: release docs
     if: type != pull_request AND branch = master
-    node_js: '8'
+    node_js: '10'
     script:
     - npm run generate-docs
     - npm run travis-deploy-github-pages
   - stage: npm release
     if: tag IS present
-    node_js: '8'
+    node_js: '10'
     script:
     - scripts/publish.sh
 env:
