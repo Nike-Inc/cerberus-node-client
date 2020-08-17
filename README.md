@@ -29,6 +29,7 @@ Cerberus will attempt to authenticate one its first call. The authentication res
 First, make sure the following environment variables are set before running the Node Client integration tests:
 ```
 export CERBERUS_HOST="https://example.cerberus.com"
+export TEST_REGION="us-west-2"
 export TEST_SDB="my-sdb"
 export TEST_SDB_CATEGORY="app"
 ```
@@ -43,6 +44,8 @@ Next, in the project directory run:
 ```
 npm run style && npm run test:unit:local && npm run test:integration
 ```
+
+If applicable, we recommend running the Node Client integration tests in both AWS Global and AWS China using the corresponding hosts, regions, and AWS credentials.
 
 ## A Note about Lambdas and Cerberus
 

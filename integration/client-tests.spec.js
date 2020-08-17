@@ -1,6 +1,6 @@
 /* eslint-disable no-trailing-spaces */
 /* eslint-env jest */
-const uuidv1 = require('uuid/v1')
+const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
 const CerberusClient = require('../index')
 
@@ -13,12 +13,14 @@ const getRequiredEnvironmentVariable = (envVar) => {
 }
 
 const cerberusHost = getRequiredEnvironmentVariable('CERBERUS_HOST')
+const testRegion = getRequiredEnvironmentVariable('TEST_REGION')
 const testSDB = getRequiredEnvironmentVariable('TEST_SDB')
 const testSDBCategory = getRequiredEnvironmentVariable('TEST_SDB_CATEGORY')
-const testId = uuidv1()
+const testId = uuidv4()
 
 const cerberusClient = new CerberusClient({
-  hostUrl: cerberusHost
+  hostUrl: cerberusHost,
+  region: testRegion
 })
 
 describe('The CerberusClient', () => {
