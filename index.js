@@ -68,6 +68,9 @@ const cerberusVersion = 'v1'
  *   // string, The cerberus URL to use.
  *   hostUrl: YOUR_CERBERUS_HOST,
  *
+ *   // string, AWS region, required if authenticating to AWS China, otherwise defaults to us-west-2
+ *   region: AWS_REGION,
+ *
  *   // boolean, defaults to false. When true will console.log many operations
  *   debug: true,
  *
