@@ -32,7 +32,7 @@ env:
   - secure: bMHcFpDtYYZr7a7TOdszXTDyHC0LIhv+tGhCjg0ZMOR4HldYVbRgzhx9z/EjMTlvk8Jd0e8ogNH4WdMTM6q33qtC6T+Un3tFPcXDwOCr0xxlsdBGBVoXH3gTrMSEJbFkDTEn4nDookv8nliinKJkeZVGKjWVpIgybkEG2TKIIBfGaBQB9SfYCu49LtcpXUpS4ZniO5uUJ5ydrH7QjQ6mk9i0ZJL2vxSVHPHnSYdyudc2IPNt0QI73uUt8pbAD4T+5nsJYZw4IgmU+l9yrtIQbaHmS7JfzYJAJh9DZLKyZiH8iDbM4Cuq7OKQNwX4vF5OnUV7ywJ1qMAP6ELVWZjOQASVpJeIvjZQh25AMSJwnMO5D7gE/Q4xWvkTavHMHATRJsomI7CoEIl2GvYgij5L1sA5f6TAO52NswzsDUiql7zEy2iIXAyV2QITlSt+U5ua2Q5fFbDTMXG4YAkEVQ5yuZodnZg93B+XLJOBFReKKMNAdkas/vKRHYYH/X+vpPsUSeBxKIQgZybz/i7L0GedRdcFyV/3/ONAizHZtBoAYrY/n3AuO9iTz9ne2k69tv0r8EGyHGSNDH1Pjlg+ureg31pW1Es+2B4w40TMcLzWCWpiq8tqY3hQoTCbNhy76Mq9oJblCWI6hjHhUKdc+HcqZSjmR4aZ9TJfNiomBn9ByUI=
 notifications:
   slack:
-    if: branch = master AND type = push
+    if: branch = master AND (type = push OR type=cron)
     on_success: change
     on_failure: always
     rooms:
