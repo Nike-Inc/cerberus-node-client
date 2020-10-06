@@ -1,5 +1,4 @@
 'use strict'
-
 const request = require('request-micro')
 const urlJoin = require('url-join')
 const FormData = require('form-data')
@@ -12,6 +11,7 @@ const globalHeaders = {
 }
 
 const cerberusVersion = 'v1'
+const DEFAULT_RETRY_ATTEMPT_NUMBER = 3
 
 /**
  * Options for creating a {@link CerberusClient}
@@ -271,7 +271,31 @@ class CerberusClient {
    * @private
    */
   _executeRequest (requestConfig) {
-    return request(requestConfig)
+    let resp
+    let i
+    for (i = 0; i < DEFAULT_RETRY_ATTEMPT_NUMBER; i++) {
+      resp = request(requestConfig)
+      if (!resp) {
+        return resp
+      } else if (!resp.status_code >= 500) {
+        return resp
+      } else {
+        // exponential backoff
+        this._sleep(0.1 * 2 ** i)
+      }
+    }
+    return resp
+  }
+
+  /**
+   * Uses setTimeout to make a sleep function
+   *
+   * @param {int} type - the number of milliseconds to sleep for
+   * @returns {promise<*>}
+   * @private
+   */
+  _sleep (ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   /**

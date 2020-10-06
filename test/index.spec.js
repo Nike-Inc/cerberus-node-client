@@ -629,9 +629,34 @@ Hello world
       expect(sts.getAuthenticationHeaders.mock.calls.length).toBe(1)
     })
     describe('_executeRequest', () => {
+      afterEach(() => {
+        request.mockReset()
+      })
       it('makes the call to the actual request library', () => {
         cerberusClient._executeRequest()
         expect(request).toHaveBeenCalled()
+      })
+
+      it('when the request gets retried', () => {
+        request.mockImplementation(() => {
+          return {
+            headers: {
+              'content-type': 'application/json'
+            },
+            statusCode: 500,
+            data: {
+              error_id: 'ccc1cc1c-e111-11e1-11ce-111e11a111f1',
+              errors: [
+                {
+                  code: 99106,
+                  message: 'some message'
+                }
+              ]
+            }
+          }
+        })
+        cerberusClient._executeRequest()
+        expect(request).toBeCalledTimes(3)
       })
     })
   })
