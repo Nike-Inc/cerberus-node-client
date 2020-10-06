@@ -334,6 +334,9 @@ class CerberusClient {
       throw new Error('There was an issue trying to authenticate with Cerberus using the STS auth endpoint\nmsg: \'' + error.message + '\'')
     }
 
+    if (authResponse.metadata.aws_iam_principal_arn != null) {
+      this._log('Successfully authenticated with Cerberus as ' + authResponse.metadata.aws_iam_principal_arn)
+    }
     // Expire 60 seconds before lease is up, to account for latency
     this._tokenExpiresAt = (Date.now() / 1000) + authResponse.lease_duration - 60 // token TTL in secs, Date.now in ms
     this._token = authResponse.client_token
