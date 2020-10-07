@@ -165,7 +165,9 @@ class CerberusClient {
       if (e.message.includes('status code: 404')) {
         res = { keys: [] }
       } else {
-        throw e
+        const msg = 'There was an issue trying to list paths for secure data\nmsg: ' + e.message + ''
+        this._log(msg)
+        throw new Error(msg)
       }
     }
     return res
@@ -253,10 +255,14 @@ class CerberusClient {
 
     if (!(response.statusCode >= 200 && response.statusCode < 300)) {
       if (response.headers['content-type'].startsWith('application/json')) {
-        throw new Error(`Cerberus returned an error, when executing a call.\nstatus code: ${response.statusCode}\nmsg: ${JSON.stringify(response.data)}`)
+        const msg = `Cerberus returned an error, when executing a call.\nstatus code: ${response.statusCode}\nmsg: ${JSON.stringify(response.data)}`
+        this._log(msg)
+        throw new Error(msg)
       } else {
-        throw new Error('Cerberus returned a non-success response that wasn\'t JSON' +
-          ', this is likely due to being blocked by the WAF')
+        const msg = 'Cerberus returned a non-success response that wasn\'t JSON' +
+          ', this is likely due to being blocked by the WAF'
+        this._log(msg)
+        throw new Error(msg)
       }
     }
 
@@ -331,7 +337,9 @@ class CerberusClient {
         headers: Object.assign({}, globalHeaders, authHeaders)
       })
     } catch (error) {
-      throw new Error('There was an issue trying to authenticate with Cerberus using the STS auth endpoint\nmsg: \'' + error.message + '\'')
+      const msg = 'There was an issue trying to authenticate with Cerberus using the STS auth endpoint\nmsg: \'' + error.message + '\''
+      this._log(msg)
+      throw new Error(msg)
     }
 
     // Expire 60 seconds before lease is up, to account for latency
