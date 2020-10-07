@@ -27,7 +27,9 @@ const baseSecretResponse = {
   wrap_info: null,
   warnings: null,
   auth: null,
-  metadata: { }
+  metadata: {
+
+  }
 }
 
 const stubToken = 'abc-123-def-456'
@@ -595,7 +597,10 @@ Hello world
         .mockImplementation(() => {
           return {
             client_token: newToken,
-            lease_duration: 3600
+            lease_duration: 3600,
+            metadata: {
+              aws_iam_principal_arn: 'arn:aws:iam::111111111111:role/role'
+            }
           }
         })
       expect(await cerberusClient._getToken()).toBe(newToken)
