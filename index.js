@@ -366,6 +366,11 @@ class CerberusClient {
       throw new Error(msg)
     }
 
+    if (authResponse.metadata.aws_iam_principal_arn != null) {
+      this._log('Successfully authenticated with Cerberus as ' + authResponse.metadata.aws_iam_principal_arn)
+    } else if (authResponse.metadata.username != null) {
+      this._log('Successfully authenticated with Cerberus as ' + authResponse.metadata.username)
+    }
     // Expire 60 seconds before lease is up, to account for latency
     this._tokenExpiresAt = (Date.now() / 1000) + authResponse.lease_duration - 60 // token TTL in secs, Date.now in ms
     this._token = authResponse.client_token
