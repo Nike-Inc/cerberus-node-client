@@ -277,7 +277,7 @@ class CerberusClient {
       resp = request(requestConfig)
       if (!resp) {
         return resp
-      } else if (!resp.status_code >= 500) {
+      } else if (resp.status_code < 500) {
         return resp
       } else {
         // exponential backoff
