@@ -165,7 +165,7 @@ class CerberusClient {
       if (e.message.includes('status code: 404')) {
         res = { keys: [] }
       } else {
-        const msg = 'There was an issue trying to list paths for secure data\nmsg: ' + e.message + ''
+        const msg = 'There was an issue trying to list paths for secure data\nmsg: ' + e.message
         this._log(msg)
         throw new Error(msg)
       }
