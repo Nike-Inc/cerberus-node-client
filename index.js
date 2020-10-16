@@ -254,13 +254,12 @@ class CerberusClient {
     }
 
     if (!(response.statusCode >= 200 && response.statusCode < 300)) {
-      if (response.headers['content-type'].startsWith('application/json')) {
+      if (response.headers['content-type'] && response.headers['content-type'].startsWith('application/json')) {
         const msg = `Cerberus returned an error, when executing a call.\nstatus code: ${response.statusCode}\nmsg: ${JSON.stringify(response.data)}`
         this._log(msg)
         throw new Error(msg)
       } else {
-        const msg = 'Cerberus returned a non-success response that wasn\'t JSON' +
-          ', this is likely due to being blocked by the WAF'
+        const msg = `Cerberus returned a non-success response that wasn't JSON, this is likely due to being blocked by the WAF.\nstatus code: ${response.statusCode}\nmsg: ${response.data ? response.data : ''}`
         this._log(msg)
         throw new Error(msg)
       }
