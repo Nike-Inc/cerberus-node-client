@@ -637,12 +637,12 @@ Hello world
       afterEach(() => {
         request.mockReset()
       })
-      it('makes the call to the actual request library', () => {
-        cerberusClient._executeRequest()
+      it('makes the call to the actual request library', async () => {
+        await cerberusClient._executeRequest()
         expect(request).toHaveBeenCalled()
       })
 
-      it('when the request gets retried', () => {
+      it('when the request gets retried', async () => {
         request.mockImplementation(() => {
           return {
             headers: {
@@ -660,7 +660,7 @@ Hello world
             }
           }
         })
-        cerberusClient._executeRequest()
+        await cerberusClient._executeRequest()
         expect(request).toBeCalledTimes(3)
       })
     })

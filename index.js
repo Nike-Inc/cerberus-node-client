@@ -1,5 +1,6 @@
 'use strict'
 const request = require('request-micro')
+const backoff = require('exponential-backoff')
 const urlJoin = require('url-join')
 const FormData = require('form-data')
 const packageData = require('./package.json')
@@ -275,21 +276,22 @@ class CerberusClient {
    * @return {promise<*>}
    * @private
    */
-  _executeRequest (requestConfig) {
+  async _executeRequest (requestConfig) {
     let resp
-    let i
-    for (i = 0; i < DEFAULT_RETRY_ATTEMPT_NUMBER; i++) {
-      resp = request(requestConfig)
-      if (!resp) {
-        return resp
-      } else if (resp.status_code < 500) {
-        return resp
-      } else {
-        // exponential backoff
-        this._sleep(0.1 * 2 ** i)
-      }
+    try {
+      return await backoff.backOff(async () => {
+        resp = await request(requestConfig)
+        if (!resp) {
+          return resp
+        } else if (resp.statusCode < 500) {
+          return resp
+        } else {
+          throw new Error('Cerberus returned a Server Error, executing retry')
+        }
+      }, { numOfAttempts: DEFAULT_RETRY_ATTEMPT_NUMBER })
+    } catch (e) {
+      return resp
     }
-    return resp
   }
 
   /**
