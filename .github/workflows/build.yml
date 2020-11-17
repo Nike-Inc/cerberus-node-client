@@ -27,18 +27,18 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm test
       - name: Upload coverage report to CodeCov
-          uses: codecov/codecov-action@v1
-          with:
-            file: coverage/clover.xml # optional
-            fail_ci_if_error: true # optional (default = false)
-            verbose: true
+        uses: codecov/codecov-action@v1
+        with:
+          file: coverage/clover.xml # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true
       - name: Slack notification when build fails
-          if: ${{ failure() }}
-          uses: rtCamp/action-slack-notify@v2.1.0
-          env:
-            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-            SLACK_CHANNEL: cerberus-alerts
-            SLACK_MESSAGE: 'Cerberus release workflow has failed :build-failed:'
-            SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
-            SLACK_TITLE: Cerberus Build Failure Notification
-            SLACK_USERNAME: GitHub Actions
+        if: ${{ failure() }}
+        uses: rtCamp/action-slack-notify@v2.1.0
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: cerberus-alerts
+          SLACK_MESSAGE: 'Cerberus release workflow has failed :build-failed:'
+          SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+          SLACK_TITLE: Cerberus Build Failure Notification
+          SLACK_USERNAME: GitHub Actions
