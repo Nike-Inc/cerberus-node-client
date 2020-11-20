@@ -4,7 +4,7 @@ This is a node client for interacting with a Cerberus backend. It can be used in
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
-This library is compatible with node 8.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
+This library is compatible with node 10.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
 
 ![Node.js CI](https://github.com/Nike-Inc/cerberus-node-client/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/Nike-Inc/cerberus-node-client/branch/master/graph/badge.svg)](https://codecov.io/gh/Nike-Inc/cerberus-node-client) [![NPM][npm img]][npm] [![License][license img]][license]
@@ -22,7 +22,7 @@ See the [CerberusClient](http://engineering.nike.com/cerberus-node-client/Cerber
 ## Authentication
 
 The cerberus client uses the [AWS SDK Credentials provider chain][node aws credentials] to load AWS IAM credentials and authenticates with Cerberus via the [sts auth endpoint](https://github.com/Nike-Inc/cerberus-management-service/blob/master/API.md#app-login-sts-v2-v2authsts-identity)
-This client will work in any vironment that has access to AWS Credentials.
+This client will work in any environment that has access to AWS Credentials.
 
 Cerberus will attempt to authenticate one its first call. The authentication result will be stored and reused. If the token has expired on a subsequent call, authentication will be repeated with the original configuration. You should not have to worry about authentication or token expiration; just use the client.
 
@@ -43,7 +43,7 @@ gimme-aws-creds
 
 Next, in the project directory run: 
 ```
-npm run stylene && npm run test:unit:local && npm run test:integration
+npm run style && npm run test:unit:local && npm run test:integration
 ```
 
 If applicable, we recommend running the Node Client integration tests in both AWS Global and AWS China using the corresponding hosts, regions, and AWS credentials.
