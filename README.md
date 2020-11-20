@@ -4,9 +4,10 @@ This is a node client for interacting with a Cerberus backend. It can be used in
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
-This library is compatible with node 8.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
+This library is compatible with node 10.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
 
-[![Build Status][travis img]][travis] [![Coverage Status][coverage img]][coverage] [![NPM][npm img]][npm] [![License][license img]][license]
+![Node.js CI](https://github.com/Nike-Inc/cerberus-node-client/workflows/Build/badge.svg)
+[![codecov](https://codecov.io/gh/Nike-Inc/cerberus-node-client/branch/master/graph/badge.svg)](https://codecov.io/gh/Nike-Inc/cerberus-node-client) [![NPM][npm img]][npm] [![License][license img]][license]
 
 ## Installation
 
@@ -73,8 +74,8 @@ Cerberus Management Service is released under the [Apache License, Version 2.0](
 [npm]:https://www.npmjs.com/package/cerberus-node-client
 [npm img]:https://img.shields.io/npm/v/cerberus-node-client.svg
 
-[coverage]:https://coveralls.io/github/Nike-Inc/cerberus-node-client?branch=master
-[coverage img]:https://coveralls.io/repos/github/Nike-Inc/cerberus-node-client/badge.svg?branch=master
+
+[coverage img][![codecov](https://codecov.io/gh/Nike-Inc/cerberus-node-client/branch/master/graph/badge.svg)](https://codecov.io/gh/Nike-Inc/cerberus-node-client)
 
 [docs]:http://engineering.nike.com/cerberus-node-client/
 [node aws credentials]:https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html
