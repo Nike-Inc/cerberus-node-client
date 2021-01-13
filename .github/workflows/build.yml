@@ -8,7 +8,7 @@ on:
     branches:
       - '**'
   pull_request:
-    branches: [ master ]
+    branches: [ master, dep/dependency_upgrade_staging ]
 
 jobs:
   build:
@@ -53,5 +53,6 @@ jobs:
           SLACK_CHANNEL: cerberus-alerts
           SLACK_MESSAGE: 'Cerberus release workflow has failed :build-failed:'
           SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
-          SLACK_TITLE: Cerberus Build Failure Notification
+          SLACK_TITLE: Cerberus Node Client Build Failure Notification
+          SLACK_COLOR: '#FF0000'
           SLACK_USERNAME: GitHub Actions
