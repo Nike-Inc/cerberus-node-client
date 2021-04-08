@@ -4,7 +4,7 @@ This is a node client for interacting with a Cerberus backend. It can be used in
 
 To learn more about Cerberus, please visit the [Cerberus website](http://engineering.nike.com/cerberus/).
 
-This library is compatible with node 10.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
+This library is compatible with node 12.x +, for previous versions of Node use the [1.x versions of the client](https://github.com/Nike-Inc/cerberus-node-client/tree/1.X_kms_client)
 
 ![Node.js CI](https://github.com/Nike-Inc/cerberus-node-client/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/Nike-Inc/cerberus-node-client/branch/master/graph/badge.svg)](https://codecov.io/gh/Nike-Inc/cerberus-node-client) [![NPM][npm img]][npm] [![License][license img]][license]
