@@ -39,7 +39,7 @@ jobs:
         run: |
           echo "Preparing .npmrc"
           echo '//registry.npmjs.org/:_authToken=${{secrets.NPM_AUTH_TOKEN}}' > .npmrc
-          echo 'registry=http://registry.npmjs.org' >> .npmrc
+          echo 'registry=https://registry.npmjs.org' >> .npmrc
           npm publish --otp=$(oathtool -b --totp ${{secrets.NPM_OTP}})
       - name: Slack notification when build fails
         if: ${{ failure() }}
