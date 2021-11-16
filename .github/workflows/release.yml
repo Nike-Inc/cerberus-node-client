@@ -28,14 +28,14 @@ jobs:
       - run: npm install
       - run: npm run test:unit:local
       - name: Upload coverage report to CodeCov
-        if: ${{ matrix.node-version == '12.x' }}
+        if: ${{ matrix.node-version == '14.x' }}
         uses: codecov/codecov-action@v1
         with:
           file: coverage/clover.xml # optional
           fail_ci_if_error: true # optional (default = false)
           verbose: true
       - name: Publish to NPM
-        if: ${{ matrix.node-version == '12.x' }}
+        if: ${{ matrix.node-version == '14.x' }}
         run: |
           echo "Preparing .npmrc"
           echo '//registry.npmjs.org/:_authToken=${{secrets.NPM_AUTH_TOKEN}}' > .npmrc
