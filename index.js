@@ -1,7 +1,8 @@
 'use strict'
 const request = require('request-micro')
 const backoff = require('exponential-backoff')
-const urlJoin = require('url-join')
+const urlJoin = require('./lib/url-join')
+// const urlJoin = require('url-join') // TODO: Update module schema to use this
 const FormData = require('form-data')
 const packageData = require('./package.json')
 const { getAuthenticationHeaders } = require('./lib/sts')
