@@ -39,7 +39,7 @@ jobs:
         run: npm run generate-docs
       - name: Deploy 🚀
         if: ${{ github.ref == 'refs/heads/master' && matrix.node-version == '16.x' }}
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@4.3.3
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages # The branch the action should deploy to.
@@ -47,7 +47,7 @@ jobs:
           CLEAN: true # Automatically remove deleted files from the deploy branch
       - name: Slack notification when build fails
         if: ${{ failure() && github.ref == 'refs/heads/master'}}
-        uses: rtCamp/action-slack-notify@v2.1.0
+        uses: rtCamp/action-slack-notify@v2.2.0
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: cerberus-alerts
