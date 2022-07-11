@@ -17,28 +17,28 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [10.x, 12.x, 14.x]
+        node-version: [12.x, 14.x, 16.x]
 
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2.1.4
+        uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
       - run: npm run test:unit:local
       - name: Upload coverage report to CodeCov
-        if: ${{ matrix.node-version == '10.x' }}
+        if: ${{ matrix.node-version == '16.x' }}
         uses: codecov/codecov-action@v1
         with:
           file: coverage/clover.xml # optional
           fail_ci_if_error: true # optional (default = false)
           verbose: true
       - name: Build Documentation
-        if: ${{ github.ref == 'refs/heads/master' && matrix.node-version == '10.x' }}
+        if: ${{ github.ref == 'refs/heads/master' && matrix.node-version == '16.x' }}
         run: npm run generate-docs
       - name: Deploy 🚀
-        if: ${{ github.ref == 'refs/heads/master' && matrix.node-version == '10.x' }}
+        if: ${{ github.ref == 'refs/heads/master' && matrix.node-version == '16.x' }}
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,7 +47,7 @@ jobs:
           CLEAN: true # Automatically remove deleted files from the deploy branch
       - name: Slack notification when build fails
         if: ${{ failure() && github.ref == 'refs/heads/master'}}
-        uses: rtCamp/action-slack-notify@v2.1.2
+        uses: rtCamp/action-slack-notify@v2.2.0
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: cerberus-alerts
