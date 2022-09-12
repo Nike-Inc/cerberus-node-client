@@ -671,6 +671,20 @@ Hello world
         await cerberusClient._executeRequest()
         expect(request).toBeCalledTimes(3)
       })
+
+      it('when the request succeeds', async () => {
+        request.mockImplementation(() => {
+          return {
+            headers: {
+              'content-type': 'application/json'
+            },
+            statusCode: 200,
+            data: Object.assign({}, baseSecretResponse, { data: { foo: 'bar' } })
+          }
+        })
+        await cerberusClient._executeRequest()
+        expect(request).toBeCalledTimes(1)
+      })
     })
   })
 })
