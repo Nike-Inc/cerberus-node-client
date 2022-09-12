@@ -248,6 +248,9 @@ class CerberusClient {
     let response
     try {
       response = await this._executeRequest(Object.assign({}, { json: true }, requestConfig))
+      if (!response) {
+        throw new Error('No response was returned from Cerberus')
+      }
     } catch (error) {
       const msg = 'There was an error executing a call to Cerberus.\nmsg: \'' + error.message + '\''
       this._log(msg)
