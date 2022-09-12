@@ -426,6 +426,14 @@ gEJuJItEaPq6B6DYCXpuKRV1Sev5ZjH4fo5DQkCsMY9EEUFCCcCA5mwvWRpdJ0a/
       cerberusClient = new CerberusClient(options)
     })
 
+    it('gets an undefined response', async () => {
+      jest
+        .spyOn(cerberusClient, '_executeRequest')
+        .mockImplementation(() => { return undefined })
+
+      await expect(cerberusClient._executeCerberusRequest({})).rejects.toThrow(/No response was returned from Cerberus/)
+    })
+
     it('when the request library throws an error', async () => {
       jest
         .spyOn(cerberusClient, '_executeRequest')
