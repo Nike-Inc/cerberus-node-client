@@ -615,6 +615,28 @@ Hello world
       expect(sts.getAuthenticationHeaders.mock.calls.length).toBe(1)
     })
 
+    it('clears the stored token, if it has expired and fetches a new token for user auth', async () => {
+      const newToken = 'new-token'
+      cerberusClient._token = stubToken
+      cerberusClient._tokenExpiresAt = (new Date() / 1000) - 5000
+      sts.getAuthenticationHeaders.mockReturnValue({
+        'X-Fake-Auth-Header': 'signed-value'
+      })
+      jest
+        .spyOn(cerberusClient, '_executeCerberusRequest')
+        .mockImplementation(() => {
+          return {
+            client_token: newToken,
+            lease_duration: 3600,
+            metadata: {
+              username: 'test_user'
+            }
+          }
+        })
+      expect(await cerberusClient._getToken()).toBe(newToken)
+      expect(sts.getAuthenticationHeaders.mock.calls.length).toBe(1)
+    })
+
     it('returns a stored token if it is not expired', async () => {
       const newToken = 'new-token'
       cerberusClient._token = stubToken
