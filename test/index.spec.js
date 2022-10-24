@@ -57,7 +57,7 @@ describe('The CerberusClient', () => {
       const region = 'some-different-region'
       const client = new CerberusClient({
         hostUrl: 'some-url',
-        region: region
+        region
       })
       expect(client._region).toBe(region)
     })

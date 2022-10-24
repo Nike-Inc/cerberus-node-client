@@ -231,7 +231,7 @@ class CerberusClient {
       headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }),
       method: type === 'LIST' ? 'GET' : type,
       url: urlJoin(this._hostUrl, cerberusVersion, 'secret', path) + (type === 'LIST' ? '?list=true' : ''),
-      body: body
+      body
     })
 
     return response ? response.data : undefined
