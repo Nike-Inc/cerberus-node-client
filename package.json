@@ -41,7 +41,7 @@
     "exponential-backoff": "^3.1.0",
     "form-data": "^4.0.0",
     "request-micro": "^1.5.1",
-    "url-join": "^4.0.1"
+    "url-join": "^5.0.0"
   },
   "devDependencies": {
     "coveralls": "^3.1.1",
