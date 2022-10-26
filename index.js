@@ -1,7 +1,7 @@
 'use strict'
 const request = require('request-micro')
 const backoff = require('exponential-backoff')
-const urlJoin = require('url-join')
+const urlJoin = require('path').posix.join
 const FormData = require('form-data')
 const packageData = require('./package.json')
 const { getAuthenticationHeaders } = require('./lib/sts')
@@ -227,10 +227,12 @@ class CerberusClient {
   async _doSecretAction (type, path, body) {
     this._log(`Starting ${type} request for ${path}`)
     const token = await this._getToken()
+    const pathName = urlJoin(cerberusVersion, 'secret', path)
+    const url = new URL(pathName, this._hostUrl).href + (type === 'LIST' ? '?list=true' : '')
     const response = await this._executeCerberusRequest({
       headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }),
       method: type === 'LIST' ? 'GET' : type,
-      url: urlJoin(this._hostUrl, cerberusVersion, 'secret', path) + (type === 'LIST' ? '?list=true' : ''),
+      url,
       body
     })
 
@@ -326,9 +328,11 @@ class CerberusClient {
       form.append('file-content', fileBuffer, { filename: filePath.match(/([^/]*)\/*$/)[1] })
     }
 
+    const pathName = urlJoin(cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath)
+    const url = new URL(pathName, this._hostUrl).href
     const data = await this._executeCerberusRequest({
       method: type === 'LIST' ? 'GET' : type,
-      url: urlJoin(this._hostUrl, cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath),
+      url,
       headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }, type === 'POST' ? form.getHeaders() : undefined),
       body: form,
       json: type === 'LIST' || type === 'DELETE'
@@ -361,7 +365,7 @@ class CerberusClient {
       const authHeaders = await getAuthenticationHeaders(this._region)
       authResponse = await this._executeCerberusRequest({
         method: 'POST',
-        url: urlJoin(this._hostUrl, 'v2/auth/sts-identity'),
+        url: new URL('v2/auth/sts-identity', this._hostUrl).href,
         headers: Object.assign({}, globalHeaders, authHeaders)
       })
     } catch (error) {
