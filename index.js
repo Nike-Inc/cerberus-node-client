@@ -227,8 +227,12 @@ class CerberusClient {
   async _doSecretAction (type, path, body) {
     this._log(`Starting ${type} request for ${path}`)
     const token = await this._getToken()
-    const pathName = urlJoin(cerberusVersion, 'secret', path)
-    const url = new URL(pathName, this._hostUrl).href + (type === 'LIST' ? '?list=true' : '')
+
+    let url = new URL(urlJoin(cerberusVersion, 'secret', path), this._hostUrl).href
+    if (type === 'LIST') {
+      url += '?list=true'
+    }
+
     const response = await this._executeCerberusRequest({
       headers: Object.assign({}, globalHeaders, { 'X-Cerberus-Token': token }),
       method: type === 'LIST' ? 'GET' : type,
@@ -328,7 +332,11 @@ class CerberusClient {
       form.append('file-content', fileBuffer, { filename: filePath.match(/([^/]*)\/*$/)[1] })
     }
 
-    const pathName = urlJoin(cerberusVersion, type === 'LIST' ? 'secure-files' : 'secure-file', filePath)
+    let securePath = 'secure-file'
+    if (type === 'LIST') {
+      securePath += 's'
+    }
+    const pathName = urlJoin(cerberusVersion, securePath, filePath)
     const url = new URL(pathName, this._hostUrl).href
     const data = await this._executeCerberusRequest({
       method: type === 'LIST' ? 'GET' : type,
