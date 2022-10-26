@@ -1,6 +1,6 @@
 {
   "name": "cerberus-node-client",
-  "version": "3.4.6",
+  "version": "3.4.7",
   "description": "Node client for Cerberus Key Mgmt",
   "main": "index.js",
   "types": "index.d.ts",
@@ -10,8 +10,8 @@
     "test:unit:ci-report-coverage": "jest test/ --coverage --coverageReporters=text-lcov --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js | coveralls",
     "test:unit:local": "jest test/ --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=index.js --collectCoverageFrom=!lib/sts.js",
     "test:integration": "PROJECT_DIR=$(pwd) jest integration/",
-    "style": "standard \"index.js\" \"test/**/*.js\" | snazzy",
-    "style:fix": "standard \"index.js\" \"test/**/*.js\" --fix",
+    "style": "standard --env jest \"index.js\" \"test/**/*.js\" | snazzy",
+    "style:fix": "standard --env jest \"index.js\" \"test/**/*.js\" --fix",
     "generate-docs": "./scripts/generate-docs.sh",
     "deploy-docs": "gh-pages -d build/docs",
     "travis-deploy-github-pages": "gh-pages -r \"https://${GH_TOKEN}@github.com/Nike-Inc/cerberus-node-client.git\" -d build/docs"
@@ -34,33 +34,29 @@
   },
   "author": "Tim Kye",
   "license": "Apache-2.0",
-  "standard": {
-    "parser": "babel-eslint",
-    "env": "jest"
-  },
   "dependencies": {
-    "@aws-sdk/client-sts": "^3.169.0",
-    "@aws-sdk/credential-provider-node": "^3.169.0",
-    "@aws-sdk/credential-provider-web-identity": "^3.168.0",
+    "@aws-sdk/client-sts": "^3.193.0",
+    "@aws-sdk/credential-provider-node": "^3.193.0",
+    "@aws-sdk/credential-provider-web-identity": "^3.193.0",
     "exponential-backoff": "^3.1.0",
-    "form-data": "^3.0.1",
-    "request-micro": "^1.5.1",
-    "url-join": "^4.0.1"
+    "form-data": "^4.0.0",
+    "request-micro": "^1.5.1"
   },
   "devDependencies": {
-    "babel-eslint": "^10.1.0",
     "coveralls": "^3.1.1",
-    "eslint": "^7.32.0",
-    "gh-pages": "^3.2.3",
+    "eslint": "^8.24.0",
+    "gh-pages": "^4.0.0",
+    "json-schema": "0.4.0",
     "ink-docstrap": "^1.3.2",
-    "jest": "^26.6.3",
-    "jest-mock-console": "^1.3.0",
+    "moment": "^2.29.4",
+    "jest": "^28.1.3",
+    "jest-mock-console": "^2.0.0",
     "jsdoc": "^3.6.11",
-    "minimist": "^1.2.6",
+    "minimist": "^1.2.7",
     "nyc": "^15.1.0",
-    "snazzy": "^8.0.0",
-    "standard": "^14.3.4",
+    "snazzy": "^9.0.0",
+    "standard": "^17.0.0",
     "tap-spec": "^5.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   }
 }
