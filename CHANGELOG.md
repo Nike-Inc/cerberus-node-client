@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [4.0.0] - 2022-11-09
+## Deprecated
+- Node 12 and below are no longer supported
+## Fixed
+- Updated all dependencies to latest versions
+## Added
+
 ## [3.0.0] - 2020-06-25
 ## Deprecated
 - Node 8 is no longer supported
